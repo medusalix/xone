@@ -661,7 +661,8 @@ static int gip_parse_classes(struct gip_client *client,
 			return -EINVAL;
 
 		str_len = le16_to_cpup((u16 *)(data + off));
-		if (!str_len || len < off + sizeof(str_len) + str_len)
+		off += sizeof(str_len);
+		if (!str_len || len < off + str_len)
 			return -EINVAL;
 
 		/* null-terminated string */
@@ -669,7 +670,7 @@ static int gip_parse_classes(struct gip_client *client,
 		if (!str)
 			return -ENOMEM;
 
-		memcpy(str, data + off + sizeof(str_len), str_len);
+		memcpy(str, data + off, str_len);
 		classes->strings[classes->count] = str;
 		classes->count++;
 		off += str_len;
