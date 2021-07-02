@@ -560,12 +560,12 @@ static struct gip_info_element *gip_parse_info_element(u8 *data, int len,
 	if (len < off + sizeof(count))
 		return ERR_PTR(-EINVAL);
 
-	count = data[off];
+	count = data[off++];
 	if (!count)
 		return ERR_PTR(-ENOTSUPP);
 
 	total = count * item_length;
-	if (len < off + sizeof(count) + total)
+	if (len < off + total)
 		return ERR_PTR(-EINVAL);
 
 	elem = kzalloc(sizeof(*elem) + total, GFP_ATOMIC);
@@ -573,7 +573,7 @@ static struct gip_info_element *gip_parse_info_element(u8 *data, int len,
 		return ERR_PTR(-ENOMEM);
 
 	elem->length = total;
-	memcpy(elem->data, data + off + sizeof(count), total);
+	memcpy(elem->data, data + off, total);
 
 	return elem;
 }
