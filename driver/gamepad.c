@@ -44,6 +44,8 @@ struct gip_gamepad_pkt_input {
 	__le16 stick_left_y;
 	__le16 stick_right_x;
 	__le16 stick_right_y;
+	u8 padding[4];
+	__le16 share_button;
 } __packed;
 
 struct gip_gamepad_pkt_rumble {
@@ -131,6 +133,7 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 	input_set_capability(dev, EV_KEY, BTN_TR);
 	input_set_capability(dev, EV_KEY, BTN_THUMBL);
 	input_set_capability(dev, EV_KEY, BTN_THUMBR);
+	input_set_capability(dev, EV_KEY, KEY_RECORD);
 	input_set_capability(dev, EV_FF, FF_RUMBLE);
 	input_set_abs_params(dev, ABS_X, -32768, 32767, 16, 128);
 	input_set_abs_params(dev, ABS_RX, -32768, 32767, 16, 128);
@@ -187,6 +190,7 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, int len)
 	struct input_dev *dev = gamepad->common.input_dev;
 	struct gip_gamepad_pkt_input *pkt = data;
 	u16 buttons = le16_to_cpu(pkt->buttons);
+	u16 share_button = le16_to_cpu(pkt->share_button);
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
@@ -201,6 +205,7 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, int len)
 	input_report_key(dev, BTN_TR, buttons & GIP_GP_BTN_BUMPER_R);
 	input_report_key(dev, BTN_THUMBL, buttons & GIP_GP_BTN_STICK_L);
 	input_report_key(dev, BTN_THUMBR, buttons & GIP_GP_BTN_STICK_R);
+	input_report_key(dev, KEY_RECORD, share_button);
 	input_report_abs(dev, ABS_X, (s16)le16_to_cpu(pkt->stick_left_x));
 	input_report_abs(dev, ABS_RX, (s16)le16_to_cpu(pkt->stick_right_x));
 	input_report_abs(dev, ABS_Y, ~(s16)le16_to_cpu(pkt->stick_left_y));
