@@ -48,7 +48,7 @@ static int gip_chatpad_hid_parse(struct hid_device *dev)
 	dev->country = desc->bCountryCode;
 
 	return hid_parse_report(dev, client->hid_descriptor->data + sizeof(*desc),
-			client->hid_descriptor->length - sizeof(*desc));
+			client->hid_descriptor->count - sizeof(*desc));
 }
 
 static int gip_chatpad_hid_raw_request(struct hid_device *dev,
@@ -151,7 +151,7 @@ static int gip_chatpad_probe(struct gip_client *client)
 	struct gip_info_element *hid_desc = client->hid_descriptor;
 	int err;
 
-	if (!hid_desc || hid_desc->length < sizeof(struct hid_descriptor))
+	if (!hid_desc || hid_desc->count < sizeof(struct hid_descriptor))
 		return -ENODEV;
 
 	chatpad = devm_kzalloc(&client->dev, sizeof(*chatpad), GFP_KERNEL);

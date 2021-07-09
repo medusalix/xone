@@ -415,7 +415,7 @@ static int gip_headset_probe(struct gip_client *client)
 	struct gip_info_element *fmts = client->audio_formats;
 	int err;
 
-	if (!fmts || fmts->length < sizeof(u8) * 2)
+	if (!fmts || !fmts->count)
 		return -ENODEV;
 
 	headset = devm_kzalloc(&client->dev, sizeof(*headset), GFP_KERNEL);

@@ -593,7 +593,7 @@ static struct gip_info_element *gip_parse_info_element(u8 *data, int len,
 	if (!elem)
 		return ERR_PTR(-ENOMEM);
 
-	elem->length = total;
+	elem->count = count;
 	memcpy(elem->data, data + off, total);
 
 	return elem;
@@ -605,7 +605,7 @@ static int gip_parse_audio_formats(struct gip_client *client,
 	struct gip_info_element *fmts;
 
 	fmts = gip_parse_info_element(data, len,
-			pkt->audio_formats_offset, sizeof(u8) * 2);
+			pkt->audio_formats_offset, 2);
 	if (IS_ERR(fmts)) {
 		if (PTR_ERR(fmts) == -ENOTSUPP)
 			return 0;
@@ -616,7 +616,7 @@ static int gip_parse_audio_formats(struct gip_client *client,
 	}
 
 	dev_dbg(&client->dev, "%s: formats=%*phD\n", __func__,
-			fmts->length, fmts->data);
+			fmts->count * 2, fmts->data);
 	client->audio_formats = fmts;
 
 	return 0;
@@ -628,7 +628,7 @@ static int gip_parse_capabilities(struct gip_client *client,
 	struct gip_info_element *caps;
 
 	caps = gip_parse_info_element(data, len,
-			pkt->capabilities_out_offset, sizeof(u8));
+			pkt->capabilities_out_offset, 1);
 	if (IS_ERR(caps)) {
 		dev_err(&client->dev, "%s: parse out failed: %ld\n",
 				__func__, PTR_ERR(caps));
@@ -636,11 +636,11 @@ static int gip_parse_capabilities(struct gip_client *client,
 	}
 
 	dev_dbg(&client->dev, "%s: out=%*phD\n", __func__,
-			caps->length, caps->data);
+			caps->count, caps->data);
 	client->capabilities_out = caps;
 
 	caps = gip_parse_info_element(data, len,
-			pkt->capabilities_in_offset, sizeof(u8));
+			pkt->capabilities_in_offset, 1);
 	if (IS_ERR(caps)) {
 		dev_err(&client->dev, "%s: parse in failed: %ld\n",
 				__func__, PTR_ERR(caps));
@@ -648,7 +648,7 @@ static int gip_parse_capabilities(struct gip_client *client,
 	}
 
 	dev_dbg(&client->dev, "%s: in=%*phD\n", __func__,
-			caps->length, caps->data);
+			caps->count, caps->data);
 	client->capabilities_in = caps;
 
 	return 0;
@@ -706,19 +706,21 @@ static int gip_parse_interfaces(struct gip_client *client,
 		struct gip_pkt_identify *pkt, u8 *data, int len)
 {
 	struct gip_info_element *intfs;
+	guid_t *guid;
 	int i;
 
 	intfs = gip_parse_info_element(data, len,
-			pkt->interfaces_offset, UUID_SIZE);
+			pkt->interfaces_offset, sizeof(guid_t));
 	if (IS_ERR(intfs)) {
 		dev_err(&client->dev, "%s: parse failed: %ld\n",
 				__func__, PTR_ERR(intfs));
 		return PTR_ERR(intfs);
 	}
 
-	for (i = 0; i < intfs->length; i += UUID_SIZE)
-		dev_dbg(&client->dev, "%s: guid=%pU\n", __func__,
-				intfs->data + i);
+	for (i = 0; i < intfs->count; i++) {
+		guid = (guid_t *)intfs->data + i;
+		dev_dbg(&client->dev, "%s: guid=%pUb\n", __func__, guid);
+	}
 
 	client->interfaces = intfs;
 
@@ -731,7 +733,7 @@ static int gip_parse_hid_descriptor(struct gip_client *client,
 	struct gip_info_element *desc;
 
 	desc = gip_parse_info_element(data, len,
-			pkt->hid_descriptor_offset, sizeof(u8));
+			pkt->hid_descriptor_offset, 1);
 	if (IS_ERR(desc)) {
 		if (PTR_ERR(desc) == -ENOTSUPP)
 			return 0;
@@ -741,7 +743,7 @@ static int gip_parse_hid_descriptor(struct gip_client *client,
 		return PTR_ERR(desc);
 	}
 
-	dev_dbg(&client->dev, "%s: length=0x%02x\n", __func__, desc->length);
+	dev_dbg(&client->dev, "%s: length=0x%02x\n", __func__, desc->count);
 	client->hid_descriptor = desc;
 
 	return 0;

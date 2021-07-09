@@ -70,7 +70,7 @@ struct gip_hardware {
 };
 
 struct gip_info_element {
-	int length;
+	u8 count;
 	u8 data[];
 };
 
