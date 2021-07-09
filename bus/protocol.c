@@ -101,8 +101,8 @@ struct gip_pkt_status {
 
 struct gip_pkt_identify {
 	u8 unknown[16];
-	__le16 unknown_offset1;
-	__le16 unknown_offset2;
+	__le16 supported_commands_offset;
+	__le16 unknown_offset;
 	__le16 audio_formats_offset;
 	__le16 capabilities_out_offset;
 	__le16 capabilities_in_offset;
@@ -176,6 +176,16 @@ struct gip_pkt_audio_header {
 
 struct gip_pkt_audio_header_ext {
 	u8 unknown[2];
+} __packed;
+
+struct gip_command_descriptor {
+	u8 marker;
+	u8 unknown1;
+	u8 command;
+	u8 length;
+	u8 unknown2[3];
+	u8 options;
+	u8 unknown3[15];
 } __packed;
 
 struct gip_chunk {
@@ -599,6 +609,35 @@ static struct gip_info_element *gip_parse_info_element(u8 *data, int len,
 	return elem;
 }
 
+static int gip_parse_supported_commands(struct gip_client *client,
+		struct gip_pkt_identify *pkt, u8 *data, int len)
+{
+	struct gip_info_element *cmds;
+	struct gip_command_descriptor *desc;
+	int i;
+
+	cmds = gip_parse_info_element(data, len,
+			pkt->supported_commands_offset, sizeof(*desc));
+	if (IS_ERR(cmds)) {
+		if (PTR_ERR(cmds) == -ENOTSUPP)
+			return 0;
+
+		dev_err(&client->dev, "%s: parse failed: %ld\n",
+				__func__, PTR_ERR(cmds));
+		return PTR_ERR(cmds);
+	}
+
+	for (i = 0; i < cmds->count; i++) {
+		desc = (struct gip_command_descriptor *)cmds->data + i;
+		dev_dbg(&client->dev, "%s: command=0x%02x, length=0x%02x, options=0x%02x\n",
+				__func__, desc->command, desc->length, desc->options);
+	}
+
+	client->supported_commands = cmds;
+
+	return 0;
+}
+
 static int gip_parse_audio_formats(struct gip_client *client,
 		struct gip_pkt_identify *pkt, u8 *data, int len)
 {
@@ -826,6 +865,10 @@ static int gip_handle_pkt_identify(struct gip_client *client,
 	/* skip unknown header */
 	data += sizeof(pkt->unknown);
 	len -= sizeof(pkt->unknown);
+
+	err = gip_parse_supported_commands(client, pkt, data, len);
+	if (err)
+		goto err_free_info;
 
 	err = gip_parse_audio_formats(client, pkt, data, len);
 	if (err)

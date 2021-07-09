@@ -66,6 +66,7 @@ struct gip_client {
 	struct gip_chunk_buffer *chunk_buf;
 	struct gip_hardware hardware;
 
+	struct gip_info_element *supported_commands;
 	struct gip_info_element *audio_formats;
 	struct gip_info_element *capabilities_in;
 	struct gip_info_element *capabilities_out;
