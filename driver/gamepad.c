@@ -4,13 +4,21 @@
  */
 
 #include <linux/module.h>
+#include <linux/uuid.h>
 #include <linux/timer.h>
 #include <linux/input.h>
 
 #include "common.h"
 
+/* vendor/product ID for the elite controller series 2 */
+#define GIP_GP_VID_MICROSOFT 0x045e
+#define GIP_GP_PID_ELITE2 0x0b00
+
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
 #define GIP_GP_RUMBLE_MAX 100
+
+static const guid_t gip_gamepad_guid_series_xs = GUID_INIT(0xecddd2fe, 0xd387, 0x4294,
+		0xbd, 0x96, 0x1a, 0x71, 0x2e, 0x3d, 0xc7, 0x7d);
 
 enum gip_gamepad_button {
 	GIP_GP_BTN_MENU = BIT(2),
@@ -46,6 +54,11 @@ struct gip_gamepad_pkt_input {
 	__le16 stick_right_y;
 } __packed;
 
+struct gip_gamepad_pkt_series_xs {
+	u8 unknown[4];
+	u8 share_button;
+} __packed;
+
 struct gip_gamepad_pkt_rumble {
 	u8 unknown;
 	u8 motors;
@@ -60,6 +73,8 @@ struct gip_gamepad_pkt_rumble {
 
 struct gip_gamepad {
 	struct gip_common common;
+
+	bool series_xs;
 
 	struct gip_gamepad_rumble {
 		spinlock_t lock;
@@ -114,11 +129,34 @@ static int gip_gamepad_queue_rumble(struct input_dev *dev,
 	return 0;
 }
 
+static bool gip_gamepad_is_series_xs(struct gip_client *client)
+{
+	struct gip_hardware *hw = &client->hardware;
+	guid_t *guid;
+	int i;
+
+	/* the elite controller also has the series X|S GUID */
+	if (hw->vendor == GIP_GP_VID_MICROSOFT && hw->product == GIP_GP_PID_ELITE2)
+		return false;
+
+	for (i = 0; i < client->interfaces->count; i++) {
+		guid = (guid_t *)client->interfaces->data + i;
+		if (guid_equal(guid, &gip_gamepad_guid_series_xs))
+			return true;
+	}
+
+	return false;
+}
+
 static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 {
 	struct gip_client *client = gamepad->common.client;
 	struct input_dev *dev = gamepad->common.input_dev;
 	int err;
+
+	gamepad->series_xs = gip_gamepad_is_series_xs(client);
+	if (gamepad->series_xs)
+		input_set_capability(dev, EV_KEY, KEY_RECORD);
 
 	input_set_capability(dev, EV_KEY, BTN_MODE);
 	input_set_capability(dev, EV_KEY, BTN_START);
@@ -186,10 +224,18 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, int len)
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 	struct input_dev *dev = gamepad->common.input_dev;
 	struct gip_gamepad_pkt_input *pkt = data;
+	struct gip_gamepad_pkt_series_xs *pkt_xs = data + sizeof(*pkt);
 	u16 buttons = le16_to_cpu(pkt->buttons);
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
+
+	if (gamepad->series_xs) {
+		if (len < sizeof(*pkt) + sizeof(*pkt_xs))
+			return -EINVAL;
+
+		input_report_key(dev, KEY_RECORD, !!pkt_xs->share_button);
+	}
 
 	input_report_key(dev, BTN_START, buttons & GIP_GP_BTN_MENU);
 	input_report_key(dev, BTN_SELECT, buttons & GIP_GP_BTN_VIEW);
