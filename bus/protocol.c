@@ -9,7 +9,8 @@
 
 #include "bus.h"
 
-/* product ID for the chat headset */
+/* vendor/product ID for the chat headset */
+#define GIP_VID_MICROSOFT 0x045e
 #define GIP_PID_CHAT_HEADSET 0x0111
 
 #define GIP_HEADER_CLIENT_ID GENMASK(3, 0)
@@ -341,10 +342,11 @@ static int gip_set_audio_format(struct gip_client *client,
 int gip_suggest_audio_format(struct gip_client *client,
 		enum gip_audio_format in, enum gip_audio_format out)
 {
+	struct gip_hardware *hw = &client->hardware;
 	int err;
 
 	/* special handling for the chat headset */
-	if (client->hardware.product == GIP_PID_CHAT_HEADSET)
+	if (hw->vendor == GIP_VID_MICROSOFT && hw->product == GIP_PID_CHAT_HEADSET)
 		err = gip_set_audio_format_chat(client,
 				GIP_AUD_FORMAT_CHAT_24KHZ);
 	else
@@ -382,8 +384,10 @@ static int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out)
 
 int gip_fix_audio_volume(struct gip_client *client)
 {
+	struct gip_hardware *hw = &client->hardware;
+
 	/* chat headsets have buttons to adjust the hardware volume */
-	if (client->hardware.product == GIP_PID_CHAT_HEADSET)
+	if (hw->vendor == GIP_VID_MICROSOFT && hw->product == GIP_PID_CHAT_HEADSET)
 		return 0;
 
 	/* set hardware volume to maximum */
