@@ -7,6 +7,7 @@
 
 #include <linux/types.h>
 
+/* time between audio packets in ms */
 #define GIP_AUDIO_INTERVAL 8
 
 enum gip_client_state {
