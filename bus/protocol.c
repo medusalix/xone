@@ -566,7 +566,6 @@ static int gip_make_audio_config(struct gip_client *client,
 		return -ENOTSUPP;
 	}
 
-	cfg->valid = true;
 	cfg->buffer_size = cfg->sample_rate * cfg->channels *
 			sizeof(s16) * GIP_AUDIO_INTERVAL / MSEC_PER_SEC;
 	cfg->fragment_size = cfg->buffer_size / client->adapter->audio_packet_count;
@@ -574,6 +573,8 @@ static int gip_make_audio_config(struct gip_client *client,
 
 	if (cfg->fragment_size > GIP_HEADER_LENGTH)
 		cfg->packet_size += sizeof(struct gip_pkt_audio_header);
+
+	cfg->valid = true;
 
 	dev_dbg(&client->dev, "%s: rate=%d/%d, buffer=%d\n", __func__,
 			cfg->sample_rate, cfg->channels, cfg->buffer_size);

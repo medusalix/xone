@@ -77,7 +77,6 @@ struct gip_info_element {
 
 struct gip_audio_config {
 	enum gip_audio_format format;
-	bool valid;
 
 	int channels;
 	int sample_rate;
@@ -85,6 +84,8 @@ struct gip_audio_config {
 	int buffer_size;
 	int fragment_size;
 	int packet_size;
+
+	bool valid;
 };
 
 struct gip_classes {
