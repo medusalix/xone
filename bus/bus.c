@@ -324,7 +324,7 @@ void gip_free_client_info(struct gip_client *client)
 {
 	int i;
 
-	kfree(client->supported_commands);
+	kfree(client->external_commands);
 	kfree(client->audio_formats);
 	kfree(client->capabilities_out);
 	kfree(client->capabilities_in);
@@ -337,7 +337,7 @@ void gip_free_client_info(struct gip_client *client)
 	kfree(client->interfaces);
 	kfree(client->hid_descriptor);
 
-	client->supported_commands = NULL;
+	client->external_commands = NULL;
 	client->audio_formats = NULL;
 	client->capabilities_out = NULL;
 	client->capabilities_in = NULL;

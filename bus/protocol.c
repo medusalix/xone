@@ -101,7 +101,7 @@ struct gip_pkt_status {
 
 struct gip_pkt_identify {
 	u8 unknown[16];
-	__le16 supported_commands_offset;
+	__le16 external_commands_offset;
 	__le16 unknown_offset;
 	__le16 audio_formats_offset;
 	__le16 capabilities_out_offset;
@@ -609,7 +609,7 @@ static struct gip_info_element *gip_parse_info_element(u8 *data, int len,
 	return elem;
 }
 
-static int gip_parse_supported_commands(struct gip_client *client,
+static int gip_parse_external_commands(struct gip_client *client,
 		struct gip_pkt_identify *pkt, u8 *data, int len)
 {
 	struct gip_info_element *cmds;
@@ -617,7 +617,7 @@ static int gip_parse_supported_commands(struct gip_client *client,
 	int i;
 
 	cmds = gip_parse_info_element(data, len,
-			pkt->supported_commands_offset, sizeof(*desc));
+			pkt->external_commands_offset, sizeof(*desc));
 	if (IS_ERR(cmds)) {
 		if (PTR_ERR(cmds) == -ENOTSUPP)
 			return 0;
@@ -633,7 +633,7 @@ static int gip_parse_supported_commands(struct gip_client *client,
 				__func__, desc->command, desc->length, desc->options);
 	}
 
-	client->supported_commands = cmds;
+	client->external_commands = cmds;
 
 	return 0;
 }
@@ -866,7 +866,7 @@ static int gip_handle_pkt_identify(struct gip_client *client,
 	data += sizeof(pkt->unknown);
 	len -= sizeof(pkt->unknown);
 
-	err = gip_parse_supported_commands(client, pkt, data, len);
+	err = gip_parse_external_commands(client, pkt, data, len);
 	if (err)
 		goto err_free_info;
 
