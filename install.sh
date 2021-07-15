@@ -10,23 +10,21 @@ if [ -n "$(dkms status xone)" ]; then
     exit 1
 fi
 
-# The blacklist should be placed in /usr/local/lib/modprobe.d for kmod 29+
-VERSION=$(git describe --tags 2> /dev/null || echo 'unknown')
-SOURCE="/usr/src/xone-$VERSION"
-BLACKLIST='/etc/modprobe.d/xone-blacklist.conf'
-LOG="/var/lib/dkms/xone/$VERSION/build/make.log"
+version=$(git describe --tags 2> /dev/null || echo unknown)
+source="/usr/src/xone-$version"
 
-echo "Installing xone $VERSION..."
-cp -r . "$SOURCE"
-find "$SOURCE" -type f \( -name 'dkms.conf' -o -name '*.c' \) -exec sed -i "s/#VERSION#/$VERSION/" {} +
+echo "Installing xone $version..."
+cp -r . "$source"
+find "$source" -type f \( -name dkms.conf -o -name '*.c' \) -exec sed -i "s/#VERSION#/$version/" {} +
 
-if [ "$1" != '--release' ]; then
-    echo 'ccflags-y += -DDEBUG' >> "$SOURCE/Kbuild"
+if [ "$1" != --release ]; then
+    echo 'ccflags-y += -DDEBUG' >> "$source/Kbuild"
 fi
 
-if dkms install "xone/$VERSION"; then
-    install -D -m 644 modprobe.conf "$BLACKLIST"
+if dkms install xone -v "$version"; then
+    # The blacklist should be placed in /usr/local/lib/modprobe.d for kmod 29+
+    install -D -m 644 modprobe.conf /etc/modprobe.d/xone-blacklist.conf
 else
-    cat "$LOG"
+    cat "/var/lib/dkms/xone/$version/build/make.log" >&2
     exit 1
 fi

@@ -5,22 +5,20 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-MODULES=$(lsmod | grep '^xone_' | cut -d ' ' -f 1 | tr '\n' ' ')
-INSTALLED=$(dkms status xone | head -n 1 | tr -s ',:' ' ' | cut -d ' ' -f 2)
-SOURCE="/usr/src/xone-$INSTALLED"
-BLACKLIST='/etc/modprobe.d/xone-blacklist.conf'
+modules=$(lsmod | grep '^xone_' | cut -d ' ' -f 1 | tr '\n' ' ')
+version=$(dkms status xone | head -n 1 | tr -s ',:' ' ' | cut -d ' ' -f 2)
 
-if [ -n "$MODULES" ]; then
-    echo "Unloading modules: $MODULES..."
+if [ -n "$modules" ]; then
+    echo "Unloading modules: $modules..."
     # shellcheck disable=SC2086
-    modprobe -r -a $MODULES
+    modprobe -r -a $modules
 fi
 
-if [ -n "$INSTALLED" ]; then
-    echo "Uninstalling xone $INSTALLED..."
-    if dkms remove --all "xone/$INSTALLED"; then
-        rm -r "$SOURCE"
-        rm -f "$BLACKLIST"
+if [ -n "$version" ]; then
+    echo "Uninstalling xone $version..."
+    if dkms remove xone -v "$version" --all; then
+        rm -r "/usr/src/xone-$version"
+        rm -f /etc/modprobe.d/xone-blacklist.conf
     fi
 else
     echo 'Driver is not installed!' >&2
