@@ -5,6 +5,11 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+if [ -n "$(dkms status xone)" ]; then
+    echo 'Driver is already installed!' >&2
+    exit 1
+fi
+
 # The blacklist should be placed in /usr/local/lib/modprobe.d for kmod 29+
 VERSION=$(git describe --tags 2> /dev/null || echo 'unknown')
 SOURCE="/usr/src/xone-$VERSION"
