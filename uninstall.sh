@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
+if [ "$(id -u)" -ne 0 ]; then
+    echo 'This script must be run as root!' >&2
+    exit 1
+fi
+
 MODULES=$(lsmod | grep '^xone_' | cut -d ' ' -f 1 | tr '\n' ' ')
 INSTALLED=$(dkms status xone | tr -s ',:' ' ' | cut -d ' ' -f 2)
 SOURCE="/usr/src/xone-$INSTALLED"

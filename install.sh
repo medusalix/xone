@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
+if [ "$(id -u)" -ne 0 ]; then
+    echo 'This script must be run as root!' >&2
+    exit 1
+fi
+
 # The blacklist should be placed in /usr/local/lib/modprobe.d for kmod 29+
 VERSION=$(git describe --tags 2> /dev/null || echo 'unknown')
 SOURCE="/usr/src/xone-$VERSION"
