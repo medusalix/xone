@@ -422,8 +422,10 @@ static int xone_wired_probe(struct usb_interface *intf,
 
 	xone->adapter = gip_create_adapter(&intf->dev,
 			&xone_wired_adapter_ops, XONE_WIRED_NUM_AUDIO_PKTS);
-	if (IS_ERR(xone->adapter))
+	if (IS_ERR(xone->adapter)) {
+		err = PTR_ERR(xone->adapter);
 		goto err_free_port;
+	}
 
 	dev_set_drvdata(&xone->adapter->dev, xone);
 	usb_set_intfdata(intf, xone);
