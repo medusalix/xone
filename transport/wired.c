@@ -381,7 +381,7 @@ static int xone_wired_disable_audio(struct gip_adapter *adap)
 	return err;
 }
 
-static struct gip_adapter_ops xone_wired_gip_ops = {
+static struct gip_adapter_ops xone_wired_adapter_ops = {
 	.get_buffer = xone_wired_get_buffer,
 	.submit_buffer = xone_wired_submit_buffer,
 	.enable_audio = xone_wired_enable_audio,
@@ -421,7 +421,7 @@ static int xone_wired_probe(struct usb_interface *intf,
 		goto err_free_port;
 
 	xone->adapter = gip_create_adapter(&intf->dev,
-			&xone_wired_gip_ops, XONE_WIRED_NUM_AUDIO_PKTS);
+			&xone_wired_adapter_ops, XONE_WIRED_NUM_AUDIO_PKTS);
 	if (IS_ERR(xone->adapter))
 		goto err_free_port;
 
