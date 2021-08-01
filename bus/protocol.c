@@ -1205,12 +1205,17 @@ static int gip_copy_chunk_data(struct gip_client *client,
 		return -EINVAL;
 	}
 
-	/* last chunk is empty, offset is total length of all chunks */
-	if (!chunk.length && chunk.offset == buf->length) {
+	if (chunk.length) {
+		memcpy(buf->data + chunk.offset, chunk.data, chunk.length);
+	} else {
+		/* empty chunk signals the completion of the transfer */
+		/* offset *should* be the total length of all chunks */
+		/* certain third party devices report an incorrect length */
+		if (chunk.offset != buf->length)
+			dev_warn(&client->dev, "%s: length mismatch\n", __func__);
+
 		dev_dbg(&client->dev, "%s: buffer complete\n", __func__);
 		buf->full = true;
-	} else {
-		memcpy(buf->data + chunk.offset, chunk.data, chunk.length);
 	}
 
 	return 0;
