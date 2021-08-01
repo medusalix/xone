@@ -412,6 +412,12 @@ static int xone_wired_probe(struct usb_interface *intf,
 	init_usb_anchor(&xone->audio_port.urbs_out_idle);
 	init_usb_anchor(&xone->audio_port.urbs_out_busy);
 
+	/* disable the audio interface */
+	/* mandatory for certain third party devices */
+	err = usb_set_interface(xone->udev, 1, 0);
+	if (err)
+		return err;
+
 	err = xone_wired_init_data_in(xone);
 	if (err)
 		goto err_free_port;
