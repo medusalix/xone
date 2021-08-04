@@ -30,9 +30,9 @@ struct gip_adapter_buffer {
 
 struct gip_adapter_ops {
 	int (*get_buffer)(struct gip_adapter *adap,
-			struct gip_adapter_buffer *buf);
+			  struct gip_adapter_buffer *buf);
 	int (*submit_buffer)(struct gip_adapter *adap,
-			struct gip_adapter_buffer *buf);
+			     struct gip_adapter_buffer *buf);
 	int (*enable_audio)(struct gip_adapter *adap);
 	int (*init_audio_in)(struct gip_adapter *adap);
 	int (*init_audio_out)(struct gip_adapter *adap, int pkt_len);
@@ -48,7 +48,11 @@ struct gip_adapter {
 
 	struct gip_client *clients[GIP_MAX_CLIENTS];
 	struct workqueue_struct *state_queue;
+
+	/* serializes access to clients array */
 	spinlock_t clients_lock;
+
+	/* serializes access to data sequence number */
 	spinlock_t send_lock;
 
 	u8 data_sequence;
@@ -77,13 +81,15 @@ struct gip_client {
 	struct gip_audio_config audio_config_in;
 	struct gip_audio_config audio_config_out;
 
+	/* serializes packet processing */
 	spinlock_t lock;
 	struct work_struct state_work;
 };
 
 struct gip_driver_ops {
-	int (*battery)(struct gip_client *client, enum gip_battery_type type,
-			enum gip_battery_level level);
+	int (*battery)(struct gip_client *client,
+		       enum gip_battery_type type,
+		       enum gip_battery_level level);
 	int (*guide_button)(struct gip_client *client, bool pressed);
 	int (*audio_ready)(struct gip_client *client);
 	int (*audio_volume)(struct gip_client *client, int in, int out);
@@ -105,7 +111,8 @@ struct gip_driver {
 };
 
 struct gip_adapter *gip_create_adapter(struct device *parent,
-		struct gip_adapter_ops *ops, int audio_pkts);
+				       struct gip_adapter_ops *ops,
+				       int audio_pkts);
 int gip_suspend_adapter(struct gip_adapter *adap);
 void gip_destroy_adapter(struct gip_adapter *adap);
 
@@ -116,5 +123,5 @@ void gip_unregister_client(struct gip_client *client);
 void gip_free_client_info(struct gip_client *client);
 
 int __gip_register_driver(struct gip_driver *drv, struct module *owner,
-		const char *mod_name);
+			  const char *mod_name);
 void gip_unregister_driver(struct gip_driver *drv);

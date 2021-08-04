@@ -17,8 +17,9 @@
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
 #define GIP_GP_RUMBLE_MAX 100
 
-static const guid_t gip_gamepad_guid_series_xs = GUID_INIT(0xecddd2fe, 0xd387, 0x4294,
-		0xbd, 0x96, 0x1a, 0x71, 0x2e, 0x3d, 0xc7, 0x7d);
+static const guid_t gip_gamepad_guid_series_xs =
+	GUID_INIT(0xecddd2fe, 0xd387, 0x4294,
+		  0xbd, 0x96, 0x1a, 0x71, 0x2e, 0x3d, 0xc7, 0x7d);
 
 enum gip_gamepad_button {
 	GIP_GP_BTN_MENU = BIT(2),
@@ -77,6 +78,7 @@ struct gip_gamepad {
 	bool series_xs;
 
 	struct gip_gamepad_rumble {
+		/* serializes access to rumble packet */
 		spinlock_t lock;
 		bool queued;
 		unsigned long last;
@@ -88,8 +90,8 @@ struct gip_gamepad {
 static void gip_gamepad_send_rumble(struct timer_list *timer)
 {
 	struct gip_gamepad_rumble *rumble = from_timer(rumble, timer, timer);
-	struct gip_gamepad *gamepad = container_of(rumble,
-			typeof(*gamepad), rumble);
+	struct gip_gamepad *gamepad = container_of(rumble, typeof(*gamepad),
+						   rumble);
 	struct gip_client *client = gamepad->common.client;
 	unsigned long flags;
 
@@ -101,8 +103,8 @@ static void gip_gamepad_send_rumble(struct timer_list *timer)
 	spin_unlock_irqrestore(&rumble->lock, flags);
 }
 
-static int gip_gamepad_queue_rumble(struct input_dev *dev,
-		void *data, struct ff_effect *effect)
+static int gip_gamepad_queue_rumble(struct input_dev *dev, void *data,
+				    struct ff_effect *effect)
 {
 	struct gip_gamepad_rumble *rumble = input_get_drvdata(dev);
 	u32 mag_left = effect->u.rumble.strong_magnitude;
@@ -136,7 +138,8 @@ static bool gip_gamepad_is_series_xs(struct gip_client *client)
 	int i;
 
 	/* the elite controller also has the series X|S GUID */
-	if (hw->vendor == GIP_GP_VID_MICROSOFT && hw->product == GIP_GP_PID_ELITE2)
+	if (hw->vendor == GIP_GP_VID_MICROSOFT &&
+	    hw->product == GIP_GP_PID_ELITE2)
 		return false;
 
 	for (i = 0; i < client->interfaces->count; i++) {
@@ -183,14 +186,14 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 	err = input_ff_create_memless(dev, NULL, gip_gamepad_queue_rumble);
 	if (err) {
 		dev_err(&client->dev, "%s: create FF failed: %d\n",
-				__func__, err);
+			__func__, err);
 		return err;
 	}
 
 	err = input_register_device(dev);
 	if (err) {
 		dev_err(&client->dev, "%s: register failed: %d\n",
-				__func__, err);
+			__func__, err);
 		return err;
 	}
 
@@ -201,7 +204,8 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 }
 
 static int gip_gamepad_op_battery(struct gip_client *client,
-		enum gip_battery_type type, enum gip_battery_level level)
+				  enum gip_battery_type type,
+				  enum gip_battery_level level)
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 
@@ -253,10 +257,10 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, int len)
 	input_report_abs(dev, ABS_RY, ~(s16)le16_to_cpu(pkt->stick_right_y));
 	input_report_abs(dev, ABS_Z, le16_to_cpu(pkt->trigger_left));
 	input_report_abs(dev, ABS_RZ, le16_to_cpu(pkt->trigger_right));
-	input_report_abs(dev, ABS_HAT0X,
-			!!(buttons & GIP_GP_BTN_DPAD_R) - !!(buttons & GIP_GP_BTN_DPAD_L));
-	input_report_abs(dev, ABS_HAT0Y,
-			!!(buttons & GIP_GP_BTN_DPAD_D) - !!(buttons & GIP_GP_BTN_DPAD_U));
+	input_report_abs(dev, ABS_HAT0X, !!(buttons & GIP_GP_BTN_DPAD_R) -
+					 !!(buttons & GIP_GP_BTN_DPAD_L));
+	input_report_abs(dev, ABS_HAT0Y, !!(buttons & GIP_GP_BTN_DPAD_D) -
+					 !!(buttons & GIP_GP_BTN_DPAD_U));
 	input_sync(dev);
 
 	return 0;
@@ -318,7 +322,7 @@ static int gip_gamepad_suspend(struct gip_client *client)
 	err = gip_set_power_mode(client, GIP_PWR_OFF);
 	if (err)
 		dev_err(&client->dev, "%s: set power mode failed: %d\n",
-				__func__, err);
+			__func__, err);
 
 	return err;
 }

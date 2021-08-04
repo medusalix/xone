@@ -31,7 +31,7 @@ static void gip_add_client(struct gip_client *client)
 	err = device_add(&client->dev);
 	if (err) {
 		dev_err(&client->dev, "%s: add device failed: %d\n",
-				__func__, err);
+			__func__, err);
 		return;
 	}
 
@@ -51,7 +51,7 @@ static void gip_remove_client(struct gip_client *client)
 static void gip_client_state_changed(struct work_struct *work)
 {
 	struct gip_client *client = container_of(work, typeof(*client),
-			state_work);
+						 state_work);
 
 	switch (atomic_read(&client->state)) {
 	case GIP_CL_IDENTIFIED:
@@ -69,12 +69,12 @@ static void gip_client_state_changed(struct work_struct *work)
 static int gip_client_uevent(struct device *dev, struct kobj_uevent_env *env)
 {
 	struct gip_client *client = to_gip_client(dev);
+	struct gip_classes *classes = client->classes;
 
-	if (!client->classes || !client->classes->count)
+	if (!classes || !classes->count)
 		return -EINVAL;
 
-	return add_uevent_var(env, "MODALIAS=gip:%s",
-			client->classes->strings[0]);
+	return add_uevent_var(env, "MODALIAS=gip:%s", classes->strings[0]);
 }
 
 static void gip_client_release(struct device *dev)
@@ -156,7 +156,8 @@ static struct bus_type gip_bus_type = {
 };
 
 struct gip_adapter *gip_create_adapter(struct device *parent,
-		struct gip_adapter_ops *ops, int audio_pkts)
+				       struct gip_adapter_ops *ops,
+				       int audio_pkts)
 {
 	struct gip_adapter *adap;
 	int err;
@@ -347,7 +348,7 @@ void gip_free_client_info(struct gip_client *client)
 }
 
 int __gip_register_driver(struct gip_driver *drv, struct module *owner,
-		const char *mod_name)
+			  const char *mod_name)
 {
 	drv->drv.name = drv->name;
 	drv->drv.bus = &gip_bus_type;

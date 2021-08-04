@@ -27,7 +27,8 @@ struct gip_battery {
 };
 
 static int gip_get_battery_prop(struct power_supply *psy,
-		enum power_supply_property psp, union power_supply_propval *val)
+				enum power_supply_property psp,
+				union power_supply_propval *val)
 {
 	struct gip_battery *batt = power_supply_get_drvdata(psy);
 
@@ -82,7 +83,7 @@ int gip_init_battery(struct gip_common *common)
 	psy = devm_power_supply_register(&client->dev, desc, &cfg);
 	if (IS_ERR(psy)) {
 		dev_err(&client->dev, "%s: register failed: %ld\n",
-				__func__, PTR_ERR(psy));
+			__func__, PTR_ERR(psy));
 		return PTR_ERR(psy);
 	}
 
@@ -94,10 +95,12 @@ int gip_init_battery(struct gip_common *common)
 }
 EXPORT_SYMBOL_GPL(gip_init_battery);
 
-int gip_report_battery(struct gip_common *common, enum gip_battery_type type,
-		enum gip_battery_level level)
+int gip_report_battery(struct gip_common *common,
+		       enum gip_battery_type type,
+		       enum gip_battery_level level)
 {
-	struct gip_battery *batt = power_supply_get_drvdata(common->power_supply);
+	struct gip_battery *batt =
+		power_supply_get_drvdata(common->power_supply);
 
 	if (type == GIP_BATT_TYPE_NONE)
 		batt->status = POWER_SUPPLY_STATUS_NOT_CHARGING;
@@ -122,10 +125,10 @@ int gip_report_battery(struct gip_common *common, enum gip_battery_type type,
 EXPORT_SYMBOL_GPL(gip_report_battery);
 
 static void gip_led_brightness_set(struct led_classdev *dev,
-		enum led_brightness brightness)
+				   enum led_brightness brightness)
 {
 	struct gip_client *client = container_of(dev->dev->parent,
-			typeof(*client), dev);
+						 typeof(*client), dev);
 	int err;
 
 	if (dev->flags & LED_UNREGISTERING)
@@ -136,7 +139,7 @@ static void gip_led_brightness_set(struct led_classdev *dev,
 	err = gip_set_led_mode(client, GIP_LED_ON, brightness);
 	if (err)
 		dev_err(&client->dev, "%s: set LED mode failed: %d\n",
-				__func__, err);
+			__func__, err);
 }
 
 int gip_init_led(struct gip_common *common)
@@ -149,7 +152,7 @@ int gip_init_led(struct gip_common *common)
 	err = gip_set_led_mode(client, GIP_LED_ON, GIP_LED_BRIGHTNESS_DEFAULT);
 	if (err) {
 		dev_err(&client->dev, "%s: set brightness failed: %d\n",
-				__func__, err);
+			__func__, err);
 		return err;
 	}
 
@@ -158,7 +161,7 @@ int gip_init_led(struct gip_common *common)
 		return -ENOMEM;
 
 	dev->name = devm_kasprintf(&client->dev, GFP_KERNEL,
-			"%s:white:status", dev_name(&client->dev));
+				   "%s:white:status", dev_name(&client->dev));
 	if (!dev->name)
 		return -ENOMEM;
 
@@ -169,7 +172,7 @@ int gip_init_led(struct gip_common *common)
 	err = devm_led_classdev_register(&client->dev, dev);
 	if (err) {
 		dev_err(&client->dev, "%s: register failed: %d\n",
-				__func__, err);
+			__func__, err);
 		return err;
 	}
 
@@ -189,7 +192,7 @@ int gip_init_input(struct gip_common *common)
 		return -ENOMEM;
 
 	dev->phys = devm_kasprintf(&client->dev, GFP_KERNEL,
-			"%s/input0", dev_name(&client->dev));
+				   "%s/input0", dev_name(&client->dev));
 	if (!dev->phys)
 		return -ENOMEM;
 

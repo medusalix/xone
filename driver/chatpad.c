@@ -47,13 +47,15 @@ static int gip_chatpad_hid_parse(struct hid_device *dev)
 	dev->version = le16_to_cpu(desc->bcdHID);
 	dev->country = desc->bCountryCode;
 
-	return hid_parse_report(dev, client->hid_descriptor->data + sizeof(*desc),
-			client->hid_descriptor->count - sizeof(*desc));
+	return hid_parse_report(dev,
+				client->hid_descriptor->data + sizeof(*desc),
+				client->hid_descriptor->count - sizeof(*desc));
 }
 
 static int gip_chatpad_hid_raw_request(struct hid_device *dev,
-		unsigned char report_num, __u8 *buf, size_t len,
-		unsigned char report_type, int request_type)
+				       unsigned char report_num, __u8 *buf,
+				       size_t len, unsigned char report_type,
+				       int request_type)
 {
 	return 0;
 }
@@ -78,7 +80,7 @@ static int gip_chatpad_init_input(struct gip_chatpad *chatpad)
 	err = input_register_device(dev);
 	if (err)
 		dev_err(&client->dev, "%s: register failed: %d\n",
-				__func__, err);
+			__func__, err);
 
 	return err;
 }
@@ -92,7 +94,7 @@ static int gip_chatpad_init_hid(struct gip_chatpad *chatpad)
 	dev = hid_allocate_device();
 	if (IS_ERR(dev)) {
 		dev_err(&client->dev, "%s: allocate failed: %ld\n",
-				__func__, PTR_ERR(dev));
+			__func__, PTR_ERR(dev));
 		return PTR_ERR(dev);
 	}
 
@@ -105,24 +107,20 @@ static int gip_chatpad_init_hid(struct gip_chatpad *chatpad)
 
 	strcpy(dev->name, chatpad->common.name);
 	snprintf(dev->phys, sizeof(dev->phys), "%s/input1",
-			dev_name(&client->dev));
+		 dev_name(&client->dev));
 
 	dev->driver_data = chatpad;
 
 	err = hid_add_device(dev);
 	if (err) {
 		dev_err(&client->dev, "%s: add failed: %d\n", __func__, err);
-		goto err_destroy_hid;
+		hid_destroy_device(dev);
+		return err;
 	}
 
 	chatpad->hid_dev = dev;
 
 	return 0;
-
-err_destroy_hid:
-	hid_destroy_device(dev);
-
-	return err;
 }
 
 static int gip_chatpad_op_guide_button(struct gip_client *client, bool pressed)
@@ -137,12 +135,12 @@ static int gip_chatpad_op_guide_button(struct gip_client *client, bool pressed)
 }
 
 static int gip_chatpad_op_hid_report(struct gip_client *client,
-		void *data, int len)
+				     void *data, int len)
 {
 	struct gip_chatpad *chatpad = dev_get_drvdata(&client->dev);
 
 	return hid_input_report(chatpad->hid_dev, HID_INPUT_REPORT,
-			data, len, true);
+				data, len, true);
 }
 
 static int gip_chatpad_probe(struct gip_client *client)

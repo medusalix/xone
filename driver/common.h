@@ -21,7 +21,8 @@ struct gip_common {
 };
 
 int gip_init_battery(struct gip_common *common);
-int gip_report_battery(struct gip_common *common, enum gip_battery_type type,
-		enum gip_battery_level level);
+int gip_report_battery(struct gip_common *common,
+		       enum gip_battery_type type,
+		       enum gip_battery_level level);
 int gip_init_led(struct gip_common *common);
 int gip_init_input(struct gip_common *common);
