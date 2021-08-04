@@ -178,7 +178,7 @@ struct gip_adapter *gip_create_adapter(struct device *parent,
 	if (!adap)
 		return ERR_PTR(-ENOMEM);
 
-	adap->id = ida_simple_get(&gip_adapter_ida, 0, 0, GFP_KERNEL);
+	adap->id = ida_alloc(&gip_adapter_ida, GFP_KERNEL);
 	if (adap->id < 0) {
 		err = adap->id;
 		goto err_put_device;
@@ -210,7 +210,7 @@ struct gip_adapter *gip_create_adapter(struct device *parent,
 err_destroy_queue:
 	destroy_workqueue(adap->state_queue);
 err_remove_ida:
-	ida_simple_remove(&gip_adapter_ida, adap->id);
+	ida_free(&gip_adapter_ida, adap->id);
 err_put_device:
 	put_device(&adap->dev);
 
@@ -247,7 +247,7 @@ void gip_destroy_adapter(struct gip_adapter *adap)
 		adap->clients[i] = NULL;
 	}
 
-	ida_simple_remove(&gip_adapter_ida, adap->id);
+	ida_free(&gip_adapter_ida, adap->id);
 	destroy_workqueue(adap->state_queue);
 
 	dev_dbg(&adap->dev, "%s: unregistered\n", __func__);
