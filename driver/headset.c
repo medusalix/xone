@@ -247,8 +247,8 @@ static int gip_headset_init_card(struct gip_headset *headset)
 	if (err)
 		return err;
 
-	strcpy(card->driver, "GIP Headset");
-	strcpy(card->shortname, headset->common.name);
+	strscpy(card->driver, "GIP Headset", sizeof(card->driver));
+	strscpy(card->shortname, headset->common.name, sizeof(card->shortname));
 	snprintf(card->longname, sizeof(card->longname), "%s at %s",
 		 headset->common.name, dev_name(&client->dev));
 
@@ -266,7 +266,7 @@ static int gip_headset_init_pcm(struct gip_headset *headset)
 	if (err)
 		return err;
 
-	strcpy(pcm->name, "GIP Headset");
+	strscpy(pcm->name, "GIP Headset", sizeof(pcm->name));
 
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &gip_headset_pcm_ops);
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &gip_headset_pcm_ops);

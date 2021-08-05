@@ -105,7 +105,7 @@ static int gip_chatpad_init_hid(struct gip_chatpad *chatpad)
 	dev->dev.parent = &client->dev;
 	dev->ll_driver = &gip_chatpad_hid_driver;
 
-	strcpy(dev->name, chatpad->common.name);
+	strscpy(dev->name, chatpad->common.name, sizeof(dev->name));
 	snprintf(dev->phys, sizeof(dev->phys), "%s/input1",
 		 dev_name(&client->dev));
 
