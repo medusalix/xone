@@ -475,54 +475,6 @@ static void xone_wired_disconnect(struct usb_interface *intf)
 	usb_set_intfdata(intf, NULL);
 }
 
-static int xone_wired_suspend(struct usb_interface *intf, pm_message_t message)
-{
-	struct xone_wired *xone = usb_get_intfdata(intf);
-	struct xone_wired_port *data = &xone->data_port;
-	struct xone_wired_port *audio = &xone->audio_port;
-	int err;
-
-	usb_kill_urb(data->urb_in);
-	usb_kill_urb(audio->urb_in);
-
-	/* 1708 controllers disconnect before suspend */
-	/* 1537 controllers power on automatically after resume */
-	err = gip_suspend_adapter(xone->adapter);
-	if (err)
-		dev_err(&intf->dev, "%s: suspend adapter failed: %d\n",
-			__func__, err);
-
-	if (!usb_wait_anchor_empty_timeout(&data->urbs_out_busy, 1000))
-		usb_kill_anchored_urbs(&data->urbs_out_busy);
-
-	if (!usb_wait_anchor_empty_timeout(&audio->urbs_out_busy, 1000))
-		usb_kill_anchored_urbs(&audio->urbs_out_busy);
-
-	return err;
-}
-
-static int xone_wired_resume(struct usb_interface *intf)
-{
-	struct xone_wired *xone = usb_get_intfdata(intf);
-	int err;
-
-	err = usb_submit_urb(xone->data_port.urb_in, GFP_KERNEL);
-	if (err) {
-		dev_err(&intf->dev, "%s: submit data failed: %d\n",
-			__func__, err);
-		return err;
-	}
-
-	if (xone->audio_port.urb_in) {
-		err = usb_submit_urb(xone->audio_port.urb_in, GFP_KERNEL);
-		if (err)
-			dev_err(&intf->dev, "%s: submit audio failed: %d\n",
-				__func__, err);
-	}
-
-	return err;
-}
-
 static const struct usb_device_id xone_wired_id_table[] = {
 	{ XONE_WIRED_VENDOR(0x045e) }, /* Microsoft */
 	{ XONE_WIRED_VENDOR(0x0738) }, /* Mad Catz */
@@ -540,8 +492,6 @@ static struct usb_driver xone_wired_driver = {
 	.name = "xone-wired",
 	.probe = xone_wired_probe,
 	.disconnect = xone_wired_disconnect,
-	.suspend = xone_wired_suspend,
-	.resume = xone_wired_resume,
 	.id_table = xone_wired_id_table,
 };
 
