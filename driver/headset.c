@@ -360,6 +360,7 @@ static void gip_headset_register(struct work_struct *work)
 
 err_free_card:
 	snd_card_free(headset->card);
+	headset->card = NULL;
 }
 
 static int gip_headset_op_audio_ready(struct gip_client *client)
@@ -441,8 +442,10 @@ static int gip_headset_probe(struct gip_client *client)
 		return err;
 
 	err = gip_init_audio_in(client);
-	if (err)
+	if (err) {
+		gip_disable_audio(client);
 		return err;
+	}
 
 	dev_set_drvdata(&client->dev, headset);
 
