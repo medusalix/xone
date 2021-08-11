@@ -14,7 +14,7 @@ This driver is still in active development. Use at your own risk!
 - [x] Battery reporting (`UPower` integration)
 - [x] LED brightness control (using `/sys/class/leds`)
 - [x] Audio capture/playback (through `ALSA`)
-- [x] Power management (suspend/resume)
+- [x] Power management (suspend/resume and remote wakeup)
 - [ ] Wireless connectivity (via dongle)
 
 ## Supported devices

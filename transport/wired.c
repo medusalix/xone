@@ -447,6 +447,12 @@ static int xone_wired_probe(struct usb_interface *intf,
 
 	xone->udev = interface_to_usbdev(intf);
 
+	/* newer devices require a reset after system sleep */
+	usb_reset_device(xone->udev);
+
+	/* enable USB remote wakeup feature */
+	device_wakeup_enable(&xone->udev->dev);
+
 	err = xone_wired_init_data_port(xone, intf);
 	if (err)
 		return err;
