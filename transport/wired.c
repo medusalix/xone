@@ -88,6 +88,13 @@ static void xone_wired_audio_in_complete(struct urb *urb)
 
 	for (i = 0; i < urb->number_of_packets; i++) {
 		desc = &urb->iso_frame_desc[i];
+
+		/* device reset after system sleep can cause xHCI errors */
+		if (desc->status == -EPROTO) {
+			dev_warn_once(dev, "%s: protocol error\n", __func__);
+			break;
+		}
+
 		if (!desc->actual_length)
 			continue;
 
