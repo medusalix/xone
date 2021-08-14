@@ -5,6 +5,11 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+if ! [ -x "$(command -v dkms)" ]; then
+    echo "This script requires DKMS!" >&2
+    exit 1
+fi
+
 if [ -n "$(dkms status xone)" ]; then
     echo 'Driver is already installed!' >&2
     exit 1
