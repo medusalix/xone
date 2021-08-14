@@ -30,6 +30,7 @@ fi
 if dkms install xone -v "$version"; then
     # The blacklist should be placed in /usr/local/lib/modprobe.d for kmod 29+
     install -D -m 644 modprobe.conf /etc/modprobe.d/xone-blacklist.conf
+    modprobe -r xpad
 else
     if [ -r "$log" ]; then
         cat "$log" >&2
