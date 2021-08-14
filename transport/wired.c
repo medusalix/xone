@@ -276,7 +276,7 @@ static int xone_wired_init_audio_in(struct gip_adapter *adap)
 
 	urb->dev = xone->udev;
 	urb->pipe = usb_rcvisocpipe(xone->udev, port->ep_in->bEndpointAddress);
-	urb->transfer_flags = URB_NO_TRANSFER_DMA_MAP;
+	urb->transfer_flags = URB_ISO_ASAP | URB_NO_TRANSFER_DMA_MAP;
 	urb->transfer_buffer = buf;
 	urb->transfer_buffer_length = len * XONE_WIRED_NUM_AUDIO_PKTS;
 	urb->number_of_packets = XONE_WIRED_NUM_AUDIO_PKTS;
@@ -317,7 +317,7 @@ static int xone_wired_init_audio_out(struct gip_adapter *adap, int pkt_len)
 		urb->dev = xone->udev;
 		urb->pipe = usb_sndisocpipe(xone->udev,
 					    port->ep_out->bEndpointAddress);
-		urb->transfer_flags = URB_NO_TRANSFER_DMA_MAP;
+		urb->transfer_flags = URB_ISO_ASAP | URB_NO_TRANSFER_DMA_MAP;
 		urb->transfer_buffer = buf;
 		urb->transfer_buffer_length = port->buffer_length_out;
 		urb->number_of_packets = XONE_WIRED_NUM_AUDIO_PKTS;
