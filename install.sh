@@ -17,6 +17,7 @@ fi
 
 version=$(git describe --tags 2> /dev/null || echo unknown)
 source="/usr/src/xone-$version"
+log="/var/lib/dkms/xone/$version/build/make.log"
 
 echo "Installing xone $version..."
 cp -r . "$source"
@@ -30,6 +31,9 @@ if dkms install xone -v "$version"; then
     # The blacklist should be placed in /usr/local/lib/modprobe.d for kmod 29+
     install -D -m 644 modprobe.conf /etc/modprobe.d/xone-blacklist.conf
 else
-    cat "/var/lib/dkms/xone/$version/build/make.log" >&2
+    if [ -r "$log" ]; then
+        cat "$log" >&2
+    fi
+
     exit 1
 fi
