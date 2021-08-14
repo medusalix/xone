@@ -47,8 +47,8 @@ struct xone_wired {
 
 static void xone_wired_data_in_complete(struct urb *urb)
 {
-	struct xone_wired *xone = urb->context;
-	struct device *dev = &xone->data_port.intf->dev;
+	struct xone_wired *wired = urb->context;
+	struct device *dev = &wired->data_port.intf->dev;
 	int err;
 
 	switch (urb->status) {
@@ -63,7 +63,7 @@ static void xone_wired_data_in_complete(struct urb *urb)
 	}
 
 	if (urb->actual_length) {
-		err = gip_process_buffer(xone->adapter, urb->transfer_buffer,
+		err = gip_process_buffer(wired->adapter, urb->transfer_buffer,
 					 urb->actual_length);
 		if (err)
 			dev_err(dev, "%s: process failed: %d\n", __func__, err);
@@ -78,8 +78,8 @@ resubmit:
 
 static void xone_wired_audio_in_complete(struct urb *urb)
 {
-	struct xone_wired *xone = urb->context;
-	struct device *dev = &xone->audio_port.intf->dev;
+	struct xone_wired *wired = urb->context;
+	struct device *dev = &wired->audio_port.intf->dev;
 	struct usb_iso_packet_descriptor *desc;
 	int i, err;
 
@@ -98,7 +98,7 @@ static void xone_wired_audio_in_complete(struct urb *urb)
 		if (!desc->actual_length)
 			continue;
 
-		err = gip_process_buffer(xone->adapter,
+		err = gip_process_buffer(wired->adapter,
 					 urb->transfer_buffer + desc->offset,
 					 desc->actual_length);
 		if (err)
@@ -118,9 +118,9 @@ static void xone_wired_out_complete(struct urb *urb)
 	usb_anchor_urb(urb, &port->urbs_out_idle);
 }
 
-static int xone_wired_init_data_in(struct xone_wired *xone)
+static int xone_wired_init_data_in(struct xone_wired *wired)
 {
-	struct xone_wired_port *port = &xone->data_port;
+	struct xone_wired_port *port = &wired->data_port;
 	struct urb *urb;
 	void *buf;
 	int len;
@@ -132,24 +132,24 @@ static int xone_wired_init_data_in(struct xone_wired *xone)
 	port->urb_in = urb;
 
 	len = usb_endpoint_maxp(port->ep_in);
-	buf = usb_alloc_coherent(xone->udev, len, GFP_KERNEL,
+	buf = usb_alloc_coherent(wired->udev, len, GFP_KERNEL,
 				 &urb->transfer_dma);
 	if (!buf)
 		return -ENOMEM;
 
-	usb_fill_int_urb(urb, xone->udev,
-			 usb_rcvintpipe(xone->udev,
+	usb_fill_int_urb(urb, wired->udev,
+			 usb_rcvintpipe(wired->udev,
 					port->ep_in->bEndpointAddress),
 			 buf, len, xone_wired_data_in_complete,
-			 xone, port->ep_in->bInterval);
+			 wired, port->ep_in->bInterval);
 	urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 
 	return usb_submit_urb(urb, GFP_KERNEL);
 }
 
-static int xone_wired_init_data_out(struct xone_wired *xone)
+static int xone_wired_init_data_out(struct xone_wired *wired)
 {
-	struct xone_wired_port *port = &xone->data_port;
+	struct xone_wired_port *port = &wired->data_port;
 	struct urb *urb;
 	void *buf;
 	int i;
@@ -163,13 +163,13 @@ static int xone_wired_init_data_out(struct xone_wired *xone)
 
 		usb_anchor_urb(urb, &port->urbs_out_idle);
 
-		buf = usb_alloc_coherent(xone->udev, port->buffer_length_out,
+		buf = usb_alloc_coherent(wired->udev, port->buffer_length_out,
 					 GFP_KERNEL, &urb->transfer_dma);
 		if (!buf)
 			return -ENOMEM;
 
-		usb_fill_int_urb(urb, xone->udev,
-				 usb_sndintpipe(xone->udev,
+		usb_fill_int_urb(urb, wired->udev,
+				 usb_sndintpipe(wired->udev,
 						port->ep_out->bEndpointAddress),
 				 buf, port->buffer_length_out,
 				 xone_wired_out_complete, port,
@@ -201,14 +201,14 @@ static void xone_wired_free_urbs(struct xone_wired_port *port)
 static int xone_wired_get_buffer(struct gip_adapter *adap,
 				 struct gip_adapter_buffer *buf)
 {
-	struct xone_wired *xone = dev_get_drvdata(&adap->dev);
+	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
 	struct xone_wired_port *port;
 	struct urb *urb;
 
 	if (buf->type == GIP_BUF_DATA)
-		port = &xone->data_port;
+		port = &wired->data_port;
 	else if (buf->type == GIP_BUF_AUDIO)
-		port = &xone->audio_port;
+		port = &wired->audio_port;
 	else
 		return -EINVAL;
 
@@ -226,15 +226,15 @@ static int xone_wired_get_buffer(struct gip_adapter *adap,
 static int xone_wired_submit_buffer(struct gip_adapter *adap,
 				    struct gip_adapter_buffer *buf)
 {
-	struct xone_wired *xone = dev_get_drvdata(&adap->dev);
+	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
 	struct xone_wired_port *port;
 	struct urb *urb = buf->context;
 	int err;
 
 	if (buf->type == GIP_BUF_DATA)
-		port = &xone->data_port;
+		port = &wired->data_port;
 	else if (buf->type == GIP_BUF_AUDIO)
-		port = &xone->audio_port;
+		port = &wired->audio_port;
 	else
 		return -EINVAL;
 
@@ -252,19 +252,19 @@ static int xone_wired_submit_buffer(struct gip_adapter *adap,
 
 static int xone_wired_enable_audio(struct gip_adapter *adap)
 {
-	struct xone_wired *xone = dev_get_drvdata(&adap->dev);
-	struct xone_wired_port *port = &xone->audio_port;
+	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
+	struct xone_wired_port *port = &wired->audio_port;
 
 	if (port->intf->cur_altsetting->desc.bAlternateSetting == 1)
 		return -EALREADY;
 
-	return usb_set_interface(xone->udev, XONE_WIRED_INTF_AUDIO, 1);
+	return usb_set_interface(wired->udev, XONE_WIRED_INTF_AUDIO, 1);
 }
 
 static int xone_wired_init_audio_in(struct gip_adapter *adap)
 {
-	struct xone_wired *xone = dev_get_drvdata(&adap->dev);
-	struct xone_wired_port *port = &xone->audio_port;
+	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
+	struct xone_wired_port *port = &wired->audio_port;
 	struct urb *urb;
 	void *buf;
 	int len, i;
@@ -276,19 +276,19 @@ static int xone_wired_init_audio_in(struct gip_adapter *adap)
 	port->urb_in = urb;
 
 	len = usb_endpoint_maxp(port->ep_in);
-	buf = usb_alloc_coherent(xone->udev, len * XONE_WIRED_NUM_AUDIO_PKTS,
+	buf = usb_alloc_coherent(wired->udev, len * XONE_WIRED_NUM_AUDIO_PKTS,
 				 GFP_KERNEL, &urb->transfer_dma);
 	if (!buf)
 		return -ENOMEM;
 
-	urb->dev = xone->udev;
-	urb->pipe = usb_rcvisocpipe(xone->udev, port->ep_in->bEndpointAddress);
+	urb->dev = wired->udev;
+	urb->pipe = usb_rcvisocpipe(wired->udev, port->ep_in->bEndpointAddress);
 	urb->transfer_flags = URB_ISO_ASAP | URB_NO_TRANSFER_DMA_MAP;
 	urb->transfer_buffer = buf;
 	urb->transfer_buffer_length = len * XONE_WIRED_NUM_AUDIO_PKTS;
 	urb->number_of_packets = XONE_WIRED_NUM_AUDIO_PKTS;
 	urb->interval = port->ep_in->bInterval;
-	urb->context = xone;
+	urb->context = wired;
 	urb->complete = xone_wired_audio_in_complete;
 
 	for (i = 0; i < XONE_WIRED_NUM_AUDIO_PKTS; i++) {
@@ -301,8 +301,8 @@ static int xone_wired_init_audio_in(struct gip_adapter *adap)
 
 static int xone_wired_init_audio_out(struct gip_adapter *adap, int pkt_len)
 {
-	struct xone_wired *xone = dev_get_drvdata(&adap->dev);
-	struct xone_wired_port *port = &xone->audio_port;
+	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
+	struct xone_wired_port *port = &wired->audio_port;
 	struct urb *urb;
 	void *buf;
 	int i, j;
@@ -316,13 +316,13 @@ static int xone_wired_init_audio_out(struct gip_adapter *adap, int pkt_len)
 
 		usb_anchor_urb(urb, &port->urbs_out_idle);
 
-		buf = usb_alloc_coherent(xone->udev, port->buffer_length_out,
+		buf = usb_alloc_coherent(wired->udev, port->buffer_length_out,
 					 GFP_KERNEL, &urb->transfer_dma);
 		if (!buf)
 			return -ENOMEM;
 
-		urb->dev = xone->udev;
-		urb->pipe = usb_sndisocpipe(xone->udev,
+		urb->dev = wired->udev;
+		urb->pipe = usb_sndisocpipe(wired->udev,
 					    port->ep_out->bEndpointAddress);
 		urb->transfer_flags = URB_ISO_ASAP | URB_NO_TRANSFER_DMA_MAP;
 		urb->transfer_buffer = buf;
@@ -343,8 +343,8 @@ static int xone_wired_init_audio_out(struct gip_adapter *adap, int pkt_len)
 
 static int xone_wired_disable_audio(struct gip_adapter *adap)
 {
-	struct xone_wired *xone = dev_get_drvdata(&adap->dev);
-	struct xone_wired_port *port = &xone->audio_port;
+	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
+	struct xone_wired_port *port = &wired->audio_port;
 
 	if (port->intf->cur_altsetting->desc.bAlternateSetting == 0)
 		return -EALREADY;
@@ -353,7 +353,7 @@ static int xone_wired_disable_audio(struct gip_adapter *adap)
 	usb_kill_anchored_urbs(&port->urbs_out_busy);
 	xone_wired_free_urbs(port);
 
-	return usb_set_interface(xone->udev, XONE_WIRED_INTF_AUDIO, 0);
+	return usb_set_interface(wired->udev, XONE_WIRED_INTF_AUDIO, 0);
 }
 
 static struct gip_adapter_ops xone_wired_adapter_ops = {
@@ -388,10 +388,10 @@ static int xone_wired_find_isoc_endpoints(struct usb_host_interface *alt,
 	return -ENXIO;
 }
 
-static int xone_wired_init_data_port(struct xone_wired *xone,
+static int xone_wired_init_data_port(struct xone_wired *wired,
 				     struct usb_interface *intf)
 {
-	struct xone_wired_port *port = &xone->data_port;
+	struct xone_wired_port *port = &wired->data_port;
 	int err;
 
 	err = usb_find_common_endpoints(intf->cur_altsetting, NULL, NULL,
@@ -406,14 +406,14 @@ static int xone_wired_init_data_port(struct xone_wired *xone,
 	return 0;
 }
 
-static int xone_wired_init_audio_port(struct xone_wired *xone)
+static int xone_wired_init_audio_port(struct xone_wired *wired)
 {
-	struct xone_wired_port *port = &xone->audio_port;
+	struct xone_wired_port *port = &wired->audio_port;
 	struct usb_interface *intf;
 	struct usb_host_interface *alt;
 	int err;
 
-	intf = usb_ifnum_to_if(xone->udev, XONE_WIRED_INTF_AUDIO);
+	intf = usb_ifnum_to_if(wired->udev, XONE_WIRED_INTF_AUDIO);
 	if (!intf)
 		return -ENODEV;
 
@@ -427,7 +427,7 @@ static int xone_wired_init_audio_port(struct xone_wired *xone)
 
 	/* disable the audio interface */
 	/* mandatory for certain third party devices */
-	err = usb_set_interface(xone->udev, XONE_WIRED_INTF_AUDIO, 0);
+	err = usb_set_interface(wired->udev, XONE_WIRED_INTF_AUDIO, 0);
 	if (err)
 		return err;
 
@@ -445,71 +445,71 @@ static int xone_wired_init_audio_port(struct xone_wired *xone)
 static int xone_wired_probe(struct usb_interface *intf,
 			    const struct usb_device_id *id)
 {
-	struct xone_wired *xone;
+	struct xone_wired *wired;
 	int err;
 
-	xone = devm_kzalloc(&intf->dev, sizeof(*xone), GFP_KERNEL);
-	if (!xone)
+	wired = devm_kzalloc(&intf->dev, sizeof(*wired), GFP_KERNEL);
+	if (!wired)
 		return -ENOMEM;
 
-	xone->udev = interface_to_usbdev(intf);
+	wired->udev = interface_to_usbdev(intf);
 
 	/* newer devices require a reset after system sleep */
-	usb_reset_device(xone->udev);
+	usb_reset_device(wired->udev);
 
 	/* enable USB remote wakeup feature */
-	device_wakeup_enable(&xone->udev->dev);
+	device_wakeup_enable(&wired->udev->dev);
 
-	err = xone_wired_init_data_port(xone, intf);
+	err = xone_wired_init_data_port(wired, intf);
 	if (err)
 		return err;
 
-	err = xone_wired_init_audio_port(xone);
+	err = xone_wired_init_audio_port(wired);
 	if (err)
 		return err;
 
-	xone->adapter = gip_create_adapter(&intf->dev, &xone_wired_adapter_ops,
-					   XONE_WIRED_NUM_AUDIO_PKTS);
-	if (IS_ERR(xone->adapter))
-		return PTR_ERR(xone->adapter);
+	wired->adapter = gip_create_adapter(&intf->dev, &xone_wired_adapter_ops,
+					    XONE_WIRED_NUM_AUDIO_PKTS);
+	if (IS_ERR(wired->adapter))
+		return PTR_ERR(wired->adapter);
 
-	dev_set_drvdata(&xone->adapter->dev, xone);
+	dev_set_drvdata(&wired->adapter->dev, wired);
 
-	err = xone_wired_init_data_out(xone);
+	err = xone_wired_init_data_out(wired);
 	if (err)
 		goto err_free_urbs;
 
-	err = xone_wired_init_data_in(xone);
+	err = xone_wired_init_data_in(wired);
 	if (err)
 		goto err_free_urbs;
 
-	usb_set_intfdata(intf, xone);
+	usb_set_intfdata(intf, wired);
 
 	return 0;
 
 err_free_urbs:
-	xone_wired_free_urbs(&xone->data_port);
-	gip_destroy_adapter(xone->adapter);
+	xone_wired_free_urbs(&wired->data_port);
+	gip_destroy_adapter(wired->adapter);
 
 	return err;
 }
 
 static void xone_wired_disconnect(struct usb_interface *intf)
 {
-	struct xone_wired *xone = usb_get_intfdata(intf);
+	struct xone_wired *wired = usb_get_intfdata(intf);
 
 	/* ignore audio interface unbind */
-	if (!xone)
+	if (!wired)
 		return;
 
-	usb_kill_urb(xone->data_port.urb_in);
-	usb_kill_urb(xone->audio_port.urb_in);
+	usb_kill_urb(wired->data_port.urb_in);
+	usb_kill_urb(wired->audio_port.urb_in);
 
 	/* also disables the audio interface */
-	gip_destroy_adapter(xone->adapter);
+	gip_destroy_adapter(wired->adapter);
 
-	usb_kill_anchored_urbs(&xone->data_port.urbs_out_busy);
-	xone_wired_free_urbs(&xone->data_port);
+	usb_kill_anchored_urbs(&wired->data_port.urbs_out_busy);
+	xone_wired_free_urbs(&wired->data_port);
 
 	usb_set_intfdata(intf, NULL);
 }
