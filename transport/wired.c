@@ -16,6 +16,8 @@
 #define XONE_WIRED_NUM_AUDIO_URBS 12
 #define XONE_WIRED_NUM_AUDIO_PKTS 8
 
+#define XONE_WIRED_LEN_DATA_PKT 64
+
 #define XONE_WIRED_VENDOR(vendor) \
 	.match_flags = USB_DEVICE_ID_MATCH_VENDOR | \
 		       USB_DEVICE_ID_MATCH_INT_INFO | \
@@ -123,7 +125,6 @@ static int xone_wired_init_data_in(struct xone_wired *wired)
 	struct xone_wired_port *port = &wired->data_port;
 	struct urb *urb;
 	void *buf;
-	int len;
 
 	urb = usb_alloc_urb(0, GFP_KERNEL);
 	if (!urb)
@@ -131,17 +132,17 @@ static int xone_wired_init_data_in(struct xone_wired *wired)
 
 	port->urb_in = urb;
 
-	len = usb_endpoint_maxp(port->ep_in);
-	buf = usb_alloc_coherent(wired->udev, len, GFP_KERNEL,
-				 &urb->transfer_dma);
+	buf = usb_alloc_coherent(wired->udev, XONE_WIRED_LEN_DATA_PKT,
+				 GFP_KERNEL, &urb->transfer_dma);
 	if (!buf)
 		return -ENOMEM;
 
 	usb_fill_int_urb(urb, wired->udev,
 			 usb_rcvintpipe(wired->udev,
 					port->ep_in->bEndpointAddress),
-			 buf, len, xone_wired_data_in_complete,
-			 wired, port->ep_in->bInterval);
+			 buf, XONE_WIRED_LEN_DATA_PKT,
+			 xone_wired_data_in_complete, wired,
+			 port->ep_in->bInterval);
 	urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 
 	return usb_submit_urb(urb, GFP_KERNEL);
@@ -154,7 +155,7 @@ static int xone_wired_init_data_out(struct xone_wired *wired)
 	void *buf;
 	int i;
 
-	port->buffer_length_out = usb_endpoint_maxp(port->ep_out);
+	port->buffer_length_out = XONE_WIRED_LEN_DATA_PKT;
 
 	for (i = 0; i < XONE_WIRED_NUM_DATA_URBS; i++) {
 		urb = usb_alloc_urb(0, GFP_KERNEL);
@@ -164,7 +165,7 @@ static int xone_wired_init_data_out(struct xone_wired *wired)
 		usb_anchor_urb(urb, &port->urbs_out_idle);
 		usb_free_urb(urb);
 
-		buf = usb_alloc_coherent(wired->udev, port->buffer_length_out,
+		buf = usb_alloc_coherent(wired->udev, XONE_WIRED_LEN_DATA_PKT,
 					 GFP_KERNEL, &urb->transfer_dma);
 		if (!buf)
 			return -ENOMEM;
@@ -172,7 +173,7 @@ static int xone_wired_init_data_out(struct xone_wired *wired)
 		usb_fill_int_urb(urb, wired->udev,
 				 usb_sndintpipe(wired->udev,
 						port->ep_out->bEndpointAddress),
-				 buf, port->buffer_length_out,
+				 buf, XONE_WIRED_LEN_DATA_PKT,
 				 xone_wired_out_complete, port,
 				 port->ep_out->bInterval);
 		urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
