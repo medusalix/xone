@@ -210,7 +210,7 @@ void gip_remove_all_clients(struct gip_adapter *adap)
 {
 	int i;
 
-	for (i = 0; i < GIP_MAX_CLIENTS; i++) {
+	for (i = GIP_MAX_CLIENTS - 1; i >= 0; i--) {
 		if (adap->clients[i]) {
 			gip_remove_client(adap->clients[i]);
 			adap->clients[i] = NULL;
