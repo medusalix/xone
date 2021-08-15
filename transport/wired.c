@@ -162,6 +162,7 @@ static int xone_wired_init_data_out(struct xone_wired *wired)
 			return -ENOMEM;
 
 		usb_anchor_urb(urb, &port->urbs_out_idle);
+		usb_free_urb(urb);
 
 		buf = usb_alloc_coherent(wired->udev, port->buffer_length_out,
 					 GFP_KERNEL, &urb->transfer_dma);
@@ -242,8 +243,10 @@ static int xone_wired_submit_buffer(struct gip_adapter *adap,
 	usb_anchor_urb(urb, &port->urbs_out_busy);
 
 	err = usb_submit_urb(urb, GFP_ATOMIC);
-	if (err)
+	if (err) {
 		usb_unanchor_urb(urb);
+		usb_anchor_urb(urb, &port->urbs_out_idle);
+	}
 
 	usb_free_urb(urb);
 
@@ -315,6 +318,7 @@ static int xone_wired_init_audio_out(struct gip_adapter *adap, int pkt_len)
 			return -ENOMEM;
 
 		usb_anchor_urb(urb, &port->urbs_out_idle);
+		usb_free_urb(urb);
 
 		buf = usb_alloc_coherent(wired->udev, port->buffer_length_out,
 					 GFP_KERNEL, &urb->transfer_dma);
