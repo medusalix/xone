@@ -218,13 +218,6 @@ static int gip_send_pkt(struct gip_client *client,
 		goto err_unlock;
 	}
 
-	/* check available space */
-	if (buf.length < sizeof(*header) + len) {
-		dev_err(&client->dev, "%s: buffer too small\n", __func__);
-		err = -ENOSPC;
-		goto err_unlock;
-	}
-
 	memcpy(buf.data, header, sizeof(*header));
 	if (data)
 		memcpy(buf.data + sizeof(*header), data, len);
