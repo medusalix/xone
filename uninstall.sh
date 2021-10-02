@@ -6,7 +6,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 modules=$(lsmod | grep '^xone_' | cut -d ' ' -f 1 | tr '\n' ' ')
-version=$(dkms status xone | head -n 1 | tr -s ',:' ' ' | cut -d ' ' -f 2)
+version=$(dkms status xone | head -n 1 | tr -s ',:/' ' ' | cut -d ' ' -f 2)
 
 if [ -n "$modules" ]; then
     echo "Unloading modules: $modules..."
