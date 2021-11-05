@@ -130,29 +130,40 @@ static int gip_bus_probe(struct device *dev)
 	return err;
 }
 
-static int gip_bus_remove(struct device *dev)
+static void gip_bus_remove(struct device *dev)
 {
 	struct gip_client *client = to_gip_client(dev);
 	struct gip_driver *drv = client->drv;
 	unsigned long flags;
 
 	if (!drv)
-		return 0;
+		return;
 
 	spin_lock_irqsave(&client->lock, flags);
 	client->drv = NULL;
 	spin_unlock_irqrestore(&client->lock, flags);
 
 	drv->remove(client);
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+static int gip_bus_remove_compat(struct device *dev)
+{
+	gip_bus_remove(dev);
 
 	return 0;
 }
+#endif
 
 static struct bus_type gip_bus_type = {
 	.name = "xone-gip",
 	.match = gip_bus_match,
 	.probe = gip_bus_probe,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+	.remove = gip_bus_remove_compat,
+#else
 	.remove = gip_bus_remove,
+#endif
 };
 
 struct gip_adapter *gip_create_adapter(struct device *parent,
