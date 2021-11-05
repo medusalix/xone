@@ -6,6 +6,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/idr.h>
+#include <linux/version.h>
 
 #include "bus.h"
 
