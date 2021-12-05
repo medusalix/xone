@@ -8,7 +8,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 if ! [ -x "$(command -v dkms)" ]; then
-    echo "This script requires DKMS!" >&2
+    echo 'This script requires DKMS!' >&2
     exit 1
 fi
 
@@ -25,7 +25,7 @@ echo "Installing xone $version..."
 cp -r . "$source"
 find "$source" -type f \( -name dkms.conf -o -name '*.c' \) -exec sed -i "s/#VERSION#/$version/" {} +
 
-if [ "$1" != --release ]; then
+if [ "${1:-}" != --release ]; then
     echo 'ccflags-y += -DDEBUG' >> "$source/Kbuild"
 fi
 
@@ -34,7 +34,7 @@ if dkms install xone -v "$version"; then
     install -D -m 644 install/modprobe.conf /etc/modprobe.d/xone-blacklist.conf
 
     # Avoid conflicts between xpad and xone
-    if [ -n "$(lsmod | grep '^xpad')" ]; then
+    if lsmod | grep -q '^xpad'; then
         modprobe -r xpad
     fi
 else
