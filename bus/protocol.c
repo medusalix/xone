@@ -1087,32 +1087,25 @@ static int gip_handle_pkt_audio_samples(struct gip_client *client,
 					void *data, int len)
 {
 	struct gip_pkt_audio_header *pkt = data;
-	struct gip_pkt_audio_header_ext *ext = data + sizeof(*pkt);
-	int total = header->length & GIP_HEADER_LENGTH;
+	u16 total = header->length & GIP_HEADER_LENGTH;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
 	/* extended audio headers are used by wireless clients */
-	if (header->options & GIP_HEADER_EXTENDED) {
+	if (header->length & GIP_HEADER_EXTENDED) {
 		total |= (pkt->length_extra & GIP_AUD_LENGTH_EXTRA) << 7;
-		if (total < sizeof(*pkt) + sizeof(*ext) || len < total)
-			return -EINVAL;
-
-		data += sizeof(*pkt) + sizeof(*ext);
-		total -= sizeof(*pkt) + sizeof(*ext);
-	} else {
-		if (total < sizeof(*pkt) || len < total)
-			return -EINVAL;
-
-		data += sizeof(*pkt);
-		total -= sizeof(*pkt);
+		data += sizeof(struct gip_pkt_audio_header_ext);
 	}
+
+	if (total < sizeof(*pkt) || len < total + sizeof(*pkt))
+		return -EINVAL;
 
 	if (!client->drv || !client->drv->ops.audio_samples)
 		return 0;
 
-	return client->drv->ops.audio_samples(client, data, total);
+	return client->drv->ops.audio_samples(client, data + sizeof(*pkt),
+					      total - sizeof(*pkt));
 }
 
 static int gip_dispatch_pkt_internal(struct gip_client *client,
