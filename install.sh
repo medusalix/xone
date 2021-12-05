@@ -37,6 +37,11 @@ if dkms install xone -v "$version"; then
     if lsmod | grep -q '^xpad'; then
         modprobe -r xpad
     fi
+
+    # Avoid conflicts between mt76x2u and xone
+    if lsmod | grep -q '^mt76x2u'; then
+        modprobe -r mt76x2u
+    fi
 else
     if [ -r "$log" ]; then
         cat "$log" >&2
