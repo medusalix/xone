@@ -859,7 +859,8 @@ static int gip_handle_pkt_status(struct gip_client *client,
 {
 	struct gip_pkt_status *pkt = data;
 
-	if (len != hdr->length || len != sizeof(*pkt))
+	/* some devices occasionally send larger status packets */
+	if (len != hdr->length || len < sizeof(*pkt))
 		return -EINVAL;
 
 	if (!(pkt->status & GIP_STATUS_CONNECTED)) {
