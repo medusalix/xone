@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+set -eu
+
 if [ "$(id -u)" -ne 0 ]; then
     echo 'This script must be run as root!' >&2
     exit 1
@@ -16,10 +18,9 @@ fi
 
 if [ -n "$version" ]; then
     echo "Uninstalling xone $version..."
-    if dkms remove xone -v "$version" --all; then
-        rm -r "/usr/src/xone-$version"
-        rm -f /etc/modprobe.d/xone-blacklist.conf
-    fi
+    dkms remove xone -v "$version" --all
+    rm -r "/usr/src/xone-$version"
+    rm -f /etc/modprobe.d/xone-blacklist.conf
 else
     echo 'Driver is not installed!' >&2
 fi
