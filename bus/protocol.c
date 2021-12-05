@@ -13,9 +13,9 @@
 #define GIP_VID_MICROSOFT 0x045e
 #define GIP_PID_CHAT_HEADSET 0x0111
 
-#define GIP_HEADER_CLIENT_ID GENMASK(3, 0)
-#define GIP_HEADER_LENGTH GENMASK(6, 0)
-#define GIP_HEADER_EXTENDED BIT(7)
+#define GIP_HDR_CLIENT_ID GENMASK(3, 0)
+#define GIP_HDR_LENGTH GENMASK(6, 0)
+#define GIP_HDR_EXTENDED BIT(7)
 
 #define GIP_BATT_LEVEL GENMASK(1, 0)
 #define GIP_BATT_TYPE GENMASK(3, 2)
@@ -196,7 +196,7 @@ struct gip_chunk {
 };
 
 static int gip_send_pkt(struct gip_client *client,
-			struct gip_header *header, void *data, int len)
+			struct gip_header *hdr, void *data, int len)
 {
 	struct gip_adapter *adap = client->adapter;
 	struct gip_adapter_buffer buf = {};
@@ -208,8 +208,8 @@ static int gip_send_pkt(struct gip_client *client,
 	spin_lock_irqsave(&adap->send_lock, flags);
 
 	/* sequence number is always greater than zero */
-	while (!header->sequence)
-		header->sequence = adap->data_sequence++;
+	while (!hdr->sequence)
+		hdr->sequence = adap->data_sequence++;
 
 	err = adap->ops->get_buffer(adap, &buf);
 	if (err) {
@@ -218,12 +218,12 @@ static int gip_send_pkt(struct gip_client *client,
 		goto err_unlock;
 	}
 
-	memcpy(buf.data, header, sizeof(*header));
+	memcpy(buf.data, hdr, sizeof(*hdr));
 	if (data)
-		memcpy(buf.data + sizeof(*header), data, len);
+		memcpy(buf.data + sizeof(*hdr), data, len);
 
 	/* set actual length */
-	buf.length = sizeof(*header) + len;
+	buf.length = sizeof(*hdr) + len;
 
 	/* always fails on adapter removal */
 	err = adap->ops->submit_buffer(adap, &buf);
@@ -240,13 +240,13 @@ err_unlock:
 static int gip_acknowledge_pkt(struct gip_client *client,
 			       struct gip_header *ack, u16 len, u16 remaining)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 	struct gip_pkt_acknowledge pkt = {};
 
-	header.command = GIP_CMD_ACKNOWLEDGE;
-	header.options = client->id | GIP_OPT_INTERNAL;
-	header.sequence = ack->sequence;
-	header.length = sizeof(pkt);
+	hdr.command = GIP_CMD_ACKNOWLEDGE;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
+	hdr.sequence = ack->sequence;
+	hdr.length = sizeof(pkt);
 
 	pkt.inner.command = ack->command;
 	pkt.inner.options = client->id | GIP_OPT_INTERNAL;
@@ -256,81 +256,81 @@ static int gip_acknowledge_pkt(struct gip_client *client,
 	/* only required for the start chunk */
 	pkt.remaining = cpu_to_le16(remaining);
 
-	return gip_send_pkt(client, &header, &pkt, sizeof(pkt));
+	return gip_send_pkt(client, &hdr, &pkt, sizeof(pkt));
 }
 
 static int gip_request_identification(struct gip_client *client)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 
-	header.command = GIP_CMD_IDENTIFY;
-	header.options = client->id | GIP_OPT_INTERNAL;
+	hdr.command = GIP_CMD_IDENTIFY;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
 
-	return gip_send_pkt(client, &header, NULL, 0);
+	return gip_send_pkt(client, &hdr, NULL, 0);
 }
 
 int gip_set_power_mode(struct gip_client *client, enum gip_power_mode mode)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 	struct gip_pkt_power pkt = {};
 
-	header.command = GIP_CMD_POWER;
-	header.options = client->id | GIP_OPT_INTERNAL;
-	header.length = sizeof(pkt);
+	hdr.command = GIP_CMD_POWER;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
+	hdr.length = sizeof(pkt);
 
 	pkt.mode = mode;
 
-	return gip_send_pkt(client, &header, &pkt, sizeof(pkt));
+	return gip_send_pkt(client, &hdr, &pkt, sizeof(pkt));
 }
 EXPORT_SYMBOL_GPL(gip_set_power_mode);
 
 int gip_complete_authentication(struct gip_client *client)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 	struct gip_pkt_authenticate pkt = {};
 
-	header.command = GIP_CMD_AUTHENTICATE;
-	header.options = client->id | GIP_OPT_INTERNAL;
-	header.length = sizeof(pkt);
+	hdr.command = GIP_CMD_AUTHENTICATE;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
+	hdr.length = sizeof(pkt);
 
 	pkt.unknown1 = 0x01;
 
-	return gip_send_pkt(client, &header, &pkt, sizeof(pkt));
+	return gip_send_pkt(client, &hdr, &pkt, sizeof(pkt));
 }
 EXPORT_SYMBOL_GPL(gip_complete_authentication);
 
 static int gip_set_audio_format_chat(struct gip_client *client,
 				     enum gip_audio_format_chat in_out)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 	struct gip_pkt_audio_format_chat pkt = {};
 
-	header.command = GIP_CMD_AUDIO_CONTROL;
-	header.options = client->id | GIP_OPT_INTERNAL;
-	header.length = sizeof(pkt);
+	hdr.command = GIP_CMD_AUDIO_CONTROL;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
+	hdr.length = sizeof(pkt);
 
 	pkt.control.subcommand = GIP_AUD_CTRL_FORMAT_CHAT;
 	pkt.in_out = in_out;
 
-	return gip_send_pkt(client, &header, &pkt, sizeof(pkt));
+	return gip_send_pkt(client, &hdr, &pkt, sizeof(pkt));
 }
 
 static int gip_set_audio_format(struct gip_client *client,
 				enum gip_audio_format in,
 				enum gip_audio_format out)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 	struct gip_pkt_audio_format pkt = {};
 
-	header.command = GIP_CMD_AUDIO_CONTROL;
-	header.options = client->id | GIP_OPT_INTERNAL;
-	header.length = sizeof(pkt);
+	hdr.command = GIP_CMD_AUDIO_CONTROL;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
+	hdr.length = sizeof(pkt);
 
 	pkt.control.subcommand = GIP_AUD_CTRL_FORMAT;
 	pkt.in = in;
 	pkt.out = out;
 
-	return gip_send_pkt(client, &header, &pkt, sizeof(pkt));
+	return gip_send_pkt(client, &hdr, &pkt, sizeof(pkt));
 }
 
 int gip_suggest_audio_format(struct gip_client *client,
@@ -363,19 +363,19 @@ EXPORT_SYMBOL_GPL(gip_suggest_audio_format);
 
 static int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 	struct gip_pkt_audio_volume pkt = {};
 
-	header.command = GIP_CMD_AUDIO_CONTROL;
-	header.options = client->id | GIP_OPT_INTERNAL;
-	header.length = sizeof(pkt);
+	hdr.command = GIP_CMD_AUDIO_CONTROL;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
+	hdr.length = sizeof(pkt);
 
 	pkt.control.subcommand = GIP_AUD_CTRL_VOLUME;
 	pkt.mute = GIP_AUD_VOLUME_UNMUTED;
 	pkt.out = out;
 	pkt.in = in;
 
-	return gip_send_pkt(client, &header, &pkt, sizeof(pkt));
+	return gip_send_pkt(client, &hdr, &pkt, sizeof(pkt));
 }
 
 int gip_fix_audio_volume(struct gip_client *client)
@@ -394,30 +394,30 @@ EXPORT_SYMBOL_GPL(gip_fix_audio_volume);
 
 int gip_send_rumble(struct gip_client *client, void *pkt, u8 len)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 
-	header.command = GIP_CMD_RUMBLE;
-	header.options = client->id;
-	header.length = len;
+	hdr.command = GIP_CMD_RUMBLE;
+	hdr.options = client->id;
+	hdr.length = len;
 
-	return gip_send_pkt(client, &header, pkt, len);
+	return gip_send_pkt(client, &hdr, pkt, len);
 }
 EXPORT_SYMBOL_GPL(gip_send_rumble);
 
 int gip_set_led_mode(struct gip_client *client,
 		     enum gip_led_mode mode, u8 brightness)
 {
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 	struct gip_pkt_led pkt = {};
 
-	header.command = GIP_CMD_LED;
-	header.options = client->id | GIP_OPT_INTERNAL;
-	header.length = sizeof(pkt);
+	hdr.command = GIP_CMD_LED;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
+	hdr.length = sizeof(pkt);
 
 	pkt.mode = mode;
 	pkt.brightness = brightness;
 
-	return gip_send_pkt(client, &header, &pkt, sizeof(pkt));
+	return gip_send_pkt(client, &hdr, &pkt, sizeof(pkt));
 }
 EXPORT_SYMBOL_GPL(gip_set_led_mode);
 
@@ -425,20 +425,19 @@ static void gip_copy_audio_samples(struct gip_client *client,
 				   void *samples, void *buf)
 {
 	struct gip_audio_config *cfg = &client->audio_config_out;
-	struct gip_header header = {};
+	struct gip_header hdr = {};
 	struct gip_pkt_audio_header pkt = {};
 	void *src, *dest;
 	int i;
 
 	/* packet length does not include audio header size */
-	header.command = GIP_CMD_AUDIO_SAMPLES;
-	header.options = client->id | GIP_OPT_INTERNAL;
-	header.length = cfg->fragment_size;
+	hdr.command = GIP_CMD_AUDIO_SAMPLES;
+	hdr.options = client->id | GIP_OPT_INTERNAL;
+	hdr.length = cfg->fragment_size;
 
-	if (cfg->fragment_size > GIP_HEADER_LENGTH) {
-		header.length |= GIP_HEADER_EXTENDED;
-		pkt.length_extra = GIP_HEADER_EXTENDED |
-				   (cfg->fragment_size >> 7);
+	if (cfg->fragment_size > GIP_HDR_LENGTH) {
+		hdr.length |= GIP_HDR_EXTENDED;
+		pkt.length_extra = GIP_HDR_EXTENDED | (cfg->fragment_size >> 7);
 	}
 
 	for (i = 0; i < client->adapter->audio_packet_count; i++) {
@@ -447,17 +446,17 @@ static void gip_copy_audio_samples(struct gip_client *client,
 
 		/* sequence number is always greater than zero */
 		do {
-			header.sequence = client->adapter->audio_sequence++;
-		} while (!header.sequence);
+			hdr.sequence = client->adapter->audio_sequence++;
+		} while (!hdr.sequence);
 
-		memcpy(dest, &header, sizeof(header));
+		memcpy(dest, &hdr, sizeof(hdr));
 
-		if (cfg->fragment_size > GIP_HEADER_LENGTH) {
-			memcpy(dest + sizeof(header), &pkt, sizeof(pkt));
-			memcpy(dest + sizeof(header) + sizeof(pkt),
-			       src, cfg->fragment_size);
+		if (cfg->fragment_size > GIP_HDR_LENGTH) {
+			memcpy(dest + sizeof(hdr), &pkt, sizeof(pkt));
+			memcpy(dest + sizeof(hdr) + sizeof(pkt), src,
+			       cfg->fragment_size);
 		} else {
-			memcpy(dest + sizeof(header), src, cfg->fragment_size);
+			memcpy(dest + sizeof(hdr), src, cfg->fragment_size);
 		}
 	}
 }
@@ -567,7 +566,7 @@ static int gip_make_audio_config(struct gip_client *client,
 			     client->adapter->audio_packet_count;
 	cfg->packet_size = cfg->fragment_size + sizeof(struct gip_header);
 
-	if (cfg->fragment_size > GIP_HEADER_LENGTH)
+	if (cfg->fragment_size > GIP_HDR_LENGTH)
 		cfg->packet_size += sizeof(struct gip_pkt_audio_header);
 
 	cfg->valid = true;
@@ -799,13 +798,13 @@ static int gip_parse_hid_descriptor(struct gip_client *client,
 }
 
 static int gip_handle_pkt_announce(struct gip_client *client,
-				   struct gip_header *header,
+				   struct gip_header *hdr,
 				   void *data, int len)
 {
 	struct gip_pkt_announce *pkt = data;
 	struct gip_hardware *hw = &client->hardware;
 
-	if (len != header->length || len != sizeof(*pkt))
+	if (len != hdr->length || len != sizeof(*pkt))
 		return -EINVAL;
 
 	if (atomic_read(&client->state) != GIP_CL_CONNECTED) {
@@ -839,12 +838,12 @@ static int gip_handle_pkt_announce(struct gip_client *client,
 }
 
 static int gip_handle_pkt_status(struct gip_client *client,
-				 struct gip_header *header,
+				 struct gip_header *hdr,
 				 void *data, int len)
 {
 	struct gip_pkt_status *pkt = data;
 
-	if (len != header->length || len != sizeof(*pkt))
+	if (len != hdr->length || len != sizeof(*pkt))
 		return -EINVAL;
 
 	if (!(pkt->status & GIP_STATUS_CONNECTED)) {
@@ -863,7 +862,7 @@ static int gip_handle_pkt_status(struct gip_client *client,
 }
 
 static int gip_handle_pkt_identify(struct gip_client *client,
-				   struct gip_header *header,
+				   struct gip_header *hdr,
 				   void *data, int len)
 {
 	struct gip_pkt_identify *pkt = data;
@@ -917,12 +916,12 @@ err_free_info:
 }
 
 static int gip_handle_pkt_guide_button(struct gip_client *client,
-				       struct gip_header *header,
+				       struct gip_header *hdr,
 				       void *data, int len)
 {
 	struct gip_pkt_guide_button *pkt = data;
 
-	if (len != header->length || len != sizeof(*pkt))
+	if (len != hdr->length || len != sizeof(*pkt))
 		return -EINVAL;
 
 	if (!client->drv || !client->drv->ops.guide_button)
@@ -932,7 +931,7 @@ static int gip_handle_pkt_guide_button(struct gip_client *client,
 }
 
 static int gip_handle_pkt_audio_format_chat(struct gip_client *client,
-					    struct gip_header *header,
+					    struct gip_header *hdr,
 					    void *data, int len)
 {
 	struct gip_pkt_audio_format_chat *pkt = data;
@@ -940,7 +939,7 @@ static int gip_handle_pkt_audio_format_chat(struct gip_client *client,
 	struct gip_audio_config *out = &client->audio_config_out;
 	int err;
 
-	if (len != header->length || len != sizeof(*pkt))
+	if (len != hdr->length || len != sizeof(*pkt))
 		return -EINVAL;
 
 	/* chat headsets apparently default to 24 kHz */
@@ -962,12 +961,12 @@ static int gip_handle_pkt_audio_format_chat(struct gip_client *client,
 }
 
 static int gip_handle_pkt_audio_volume_chat(struct gip_client *client,
-					    struct gip_header *header,
+					    struct gip_header *hdr,
 					    void *data, int len)
 {
 	struct gip_pkt_audio_volume_chat *pkt = data;
 
-	if (len != header->length || len != sizeof(*pkt))
+	if (len != hdr->length || len != sizeof(*pkt))
 		return -EINVAL;
 
 	if (!client->drv || !client->drv->ops.audio_volume)
@@ -977,7 +976,7 @@ static int gip_handle_pkt_audio_volume_chat(struct gip_client *client,
 }
 
 static int gip_handle_pkt_audio_format(struct gip_client *client,
-				       struct gip_header *header,
+				       struct gip_header *hdr,
 				       void *data, int len)
 {
 	struct gip_pkt_audio_format *pkt = data;
@@ -985,7 +984,7 @@ static int gip_handle_pkt_audio_format(struct gip_client *client,
 	struct gip_audio_config *out = &client->audio_config_out;
 	int err;
 
-	if (len != header->length || len != sizeof(*pkt))
+	if (len != hdr->length || len != sizeof(*pkt))
 		return -EINVAL;
 
 	/* format has already been accepted */
@@ -1014,12 +1013,12 @@ static int gip_handle_pkt_audio_format(struct gip_client *client,
 }
 
 static int gip_handle_pkt_audio_volume(struct gip_client *client,
-				       struct gip_header *header,
+				       struct gip_header *hdr,
 				       void *data, int len)
 {
 	struct gip_pkt_audio_volume *pkt = data;
 
-	if (len != header->length || len != sizeof(*pkt))
+	if (len != hdr->length || len != sizeof(*pkt))
 		return -EINVAL;
 
 	if (!client->drv || !client->drv->ops.audio_volume)
@@ -1029,7 +1028,7 @@ static int gip_handle_pkt_audio_volume(struct gip_client *client,
 }
 
 static int gip_handle_pkt_audio_control(struct gip_client *client,
-					struct gip_header *header,
+					struct gip_header *hdr,
 					void *data, int len)
 {
 	struct gip_pkt_audio_control *pkt = data;
@@ -1039,15 +1038,13 @@ static int gip_handle_pkt_audio_control(struct gip_client *client,
 
 	switch (pkt->subcommand) {
 	case GIP_AUD_CTRL_FORMAT_CHAT:
-		return gip_handle_pkt_audio_format_chat(client, header,
-							data, len);
+		return gip_handle_pkt_audio_format_chat(client, hdr, data, len);
 	case GIP_AUD_CTRL_VOLUME_CHAT:
-		return gip_handle_pkt_audio_volume_chat(client, header,
-							data, len);
+		return gip_handle_pkt_audio_volume_chat(client, hdr, data, len);
 	case GIP_AUD_CTRL_FORMAT:
-		return gip_handle_pkt_audio_format(client, header, data, len);
+		return gip_handle_pkt_audio_format(client, hdr, data, len);
 	case GIP_AUD_CTRL_VOLUME:
-		return gip_handle_pkt_audio_volume(client, header, data, len);
+		return gip_handle_pkt_audio_volume(client, hdr, data, len);
 	}
 
 	dev_err(&client->dev, "%s: unknown subcommand: 0x%02x\n",
@@ -1057,10 +1054,10 @@ static int gip_handle_pkt_audio_control(struct gip_client *client,
 }
 
 static int gip_handle_pkt_hid_report(struct gip_client *client,
-				     struct gip_header *header,
+				     struct gip_header *hdr,
 				     void *data, int len)
 {
-	if (len != header->length)
+	if (len != hdr->length)
 		return -EINVAL;
 
 	if (!client->drv || !client->drv->ops.hid_report)
@@ -1070,10 +1067,10 @@ static int gip_handle_pkt_hid_report(struct gip_client *client,
 }
 
 static int gip_handle_pkt_input(struct gip_client *client,
-				struct gip_header *header,
+				struct gip_header *hdr,
 				void *data, int len)
 {
-	if (len != header->length)
+	if (len != hdr->length)
 		return -EINVAL;
 
 	if (!client->drv || !client->drv->ops.input)
@@ -1083,17 +1080,17 @@ static int gip_handle_pkt_input(struct gip_client *client,
 }
 
 static int gip_handle_pkt_audio_samples(struct gip_client *client,
-					struct gip_header *header,
+					struct gip_header *hdr,
 					void *data, int len)
 {
 	struct gip_pkt_audio_header *pkt = data;
-	u16 total = header->length & GIP_HEADER_LENGTH;
+	u16 total = hdr->length & GIP_HDR_LENGTH;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
 	/* extended audio headers are used by wireless clients */
-	if (header->length & GIP_HEADER_EXTENDED) {
+	if (hdr->length & GIP_HDR_EXTENDED) {
 		total |= (pkt->length_extra & GIP_AUD_LENGTH_EXTRA) << 7;
 		data += sizeof(struct gip_pkt_audio_header_ext);
 	}
@@ -1109,42 +1106,42 @@ static int gip_handle_pkt_audio_samples(struct gip_client *client,
 }
 
 static int gip_dispatch_pkt_internal(struct gip_client *client,
-				     struct gip_header *header,
+				     struct gip_header *hdr,
 				     void *data, int len)
 {
-	switch (header->command) {
+	switch (hdr->command) {
 	case GIP_CMD_ACKNOWLEDGE:
 		/* ignore acknowledgements */
 		return 0;
 	case GIP_CMD_ANNOUNCE:
-		return gip_handle_pkt_announce(client, header, data, len);
+		return gip_handle_pkt_announce(client, hdr, data, len);
 	case GIP_CMD_STATUS:
-		return gip_handle_pkt_status(client, header, data, len);
+		return gip_handle_pkt_status(client, hdr, data, len);
 	case GIP_CMD_IDENTIFY:
-		return gip_handle_pkt_identify(client, header, data, len);
+		return gip_handle_pkt_identify(client, hdr, data, len);
 	case GIP_CMD_GUIDE_BUTTON:
-		return gip_handle_pkt_guide_button(client, header, data, len);
+		return gip_handle_pkt_guide_button(client, hdr, data, len);
 	case GIP_CMD_AUDIO_CONTROL:
-		return gip_handle_pkt_audio_control(client, header, data, len);
+		return gip_handle_pkt_audio_control(client, hdr, data, len);
 	case GIP_CMD_HID_REPORT:
-		return gip_handle_pkt_hid_report(client, header, data, len);
+		return gip_handle_pkt_hid_report(client, hdr, data, len);
 	case GIP_CMD_AUDIO_SAMPLES:
-		return gip_handle_pkt_audio_samples(client, header, data, len);
+		return gip_handle_pkt_audio_samples(client, hdr, data, len);
 	}
 
 	return -EPROTO;
 }
 
 static int gip_dispatch_pkt(struct gip_client *client,
-			    struct gip_header *header,
+			    struct gip_header *hdr,
 			    void *data, int len)
 {
-	if (header->options & GIP_OPT_INTERNAL)
-		return gip_dispatch_pkt_internal(client, header, data, len);
+	if (hdr->options & GIP_OPT_INTERNAL)
+		return gip_dispatch_pkt_internal(client, hdr, data, len);
 
-	switch (header->command) {
+	switch (hdr->command) {
 	case GIP_CMD_INPUT:
-		return gip_handle_pkt_input(client, header, data, len);
+		return gip_handle_pkt_input(client, hdr, data, len);
 	}
 
 	return -EPROTO;
@@ -1154,24 +1151,24 @@ static int gip_parse_chunk(struct gip_client *client,
 			   struct gip_chunk *chunk,
 			   void *data, int len)
 {
-	struct gip_header *header = data;
-	struct gip_chunk_header *chunk_header = data + sizeof(*header);
+	struct gip_header *hdr = data;
+	struct gip_chunk_header *chunk_hdr = data + sizeof(*hdr);
 
-	if (len < sizeof(*header) + sizeof(*chunk_header)) {
+	if (len < sizeof(*hdr) + sizeof(*chunk_hdr)) {
 		dev_err(&client->dev, "%s: invalid length\n", __func__);
 		return -EINVAL;
 	}
 
-	if (header->length & GIP_HEADER_EXTENDED)
-		chunk->offset = chunk_header->offset;
+	if (hdr->length & GIP_HDR_EXTENDED)
+		chunk->offset = chunk_hdr->offset;
 	else
-		chunk->offset = (chunk_header->offset_extra & 0x7f) |
-				(chunk_header->offset << 7);
+		chunk->offset = (chunk_hdr->offset_extra & 0x7f) |
+				(chunk_hdr->offset << 7);
 
-	chunk->data = data + sizeof(*header) + sizeof(*chunk_header);
-	chunk->length = len - sizeof(*header) - sizeof(*chunk_header);
+	chunk->data = data + sizeof(*hdr) + sizeof(*chunk_hdr);
+	chunk->length = len - sizeof(*hdr) - sizeof(*chunk_hdr);
 
-	if (chunk->length != (header->length & GIP_HEADER_LENGTH)) {
+	if (chunk->length != (hdr->length & GIP_HDR_LENGTH)) {
 		dev_err(&client->dev, "%s: length mismatch\n", __func__);
 		return -EINVAL;
 	}
@@ -1241,7 +1238,7 @@ static int gip_copy_chunk_data(struct gip_client *client,
 
 static int gip_process_chunk(struct gip_client *client, void *data, int len)
 {
-	struct gip_header *header = data;
+	struct gip_header *hdr = data;
 	struct gip_chunk chunk = {};
 	int err;
 
@@ -1249,23 +1246,23 @@ static int gip_process_chunk(struct gip_client *client, void *data, int len)
 	if (err)
 		return err;
 
-	if (header->options & GIP_OPT_CHUNK_START) {
+	if (hdr->options & GIP_OPT_CHUNK_START) {
 		/* offset is total length of all chunks */
 		err = gip_init_chunk_buffer(client, chunk.offset);
 		if (err)
 			return err;
 
 		/* acknowledge with remaining length */
-		err = gip_acknowledge_pkt(client, header, chunk.length,
+		err = gip_acknowledge_pkt(client, hdr, chunk.length,
 					  client->chunk_buf->length -
 					  chunk.length);
 		if (err)
 			return err;
 
 		chunk.offset = 0;
-	} else if (header->options & GIP_OPT_ACKNOWLEDGE) {
+	} else if (hdr->options & GIP_OPT_ACKNOWLEDGE) {
 		/* acknowledge with total buffer length */
-		err = gip_acknowledge_pkt(client, header,
+		err = gip_acknowledge_pkt(client, hdr,
 					  client->chunk_buf->length, 0);
 		if (err)
 			return err;
@@ -1277,23 +1274,23 @@ static int gip_process_chunk(struct gip_client *client, void *data, int len)
 static int gip_process_pkt_coherent(struct gip_client *client,
 				    void *data, int len)
 {
-	struct gip_header *header = data;
+	struct gip_header *hdr = data;
 	int err;
 
-	if (header->options & GIP_OPT_ACKNOWLEDGE) {
-		err = gip_acknowledge_pkt(client, header, header->length, 0);
+	if (hdr->options & GIP_OPT_ACKNOWLEDGE) {
+		err = gip_acknowledge_pkt(client, hdr, hdr->length, 0);
 		if (err)
 			return err;
 	}
 
-	return gip_dispatch_pkt(client, header,
-				data + sizeof(*header), len - sizeof(*header));
+	return gip_dispatch_pkt(client, hdr,
+				data + sizeof(*hdr), len - sizeof(*hdr));
 }
 
 static int gip_process_pkt_chunked(struct gip_client *client,
 				   void *data, int len)
 {
-	struct gip_header *header = data;
+	struct gip_header *hdr = data;
 	struct gip_chunk_buffer *buf;
 	int err;
 
@@ -1304,7 +1301,7 @@ static int gip_process_pkt_chunked(struct gip_client *client,
 	/* all chunks have been received */
 	buf = client->chunk_buf;
 	if (buf->full) {
-		err = gip_dispatch_pkt(client, header, buf->data, buf->length);
+		err = gip_dispatch_pkt(client, hdr, buf->data, buf->length);
 
 		kfree(buf);
 		client->chunk_buf = NULL;
@@ -1315,13 +1312,13 @@ static int gip_process_pkt_chunked(struct gip_client *client,
 
 int gip_process_buffer(struct gip_adapter *adap, void *data, int len)
 {
-	struct gip_header *header = data;
+	struct gip_header *hdr = data;
 	struct gip_client *client;
-	u8 id = header->options & GIP_HEADER_CLIENT_ID;
+	u8 id = hdr->options & GIP_HDR_CLIENT_ID;
 	int err = 0;
 	unsigned long flags;
 
-	if (len < sizeof(*header)) {
+	if (len < sizeof(*hdr)) {
 		dev_err(&adap->dev, "%s: invalid length\n", __func__);
 		return -EINVAL;
 	}
@@ -1338,7 +1335,7 @@ int gip_process_buffer(struct gip_adapter *adap, void *data, int len)
 	if (atomic_read(&client->state) == GIP_CL_DISCONNECTED)
 		goto err_unlock;
 
-	if (header->options & GIP_OPT_CHUNK)
+	if (hdr->options & GIP_OPT_CHUNK)
 		err = gip_process_pkt_chunked(client, data, len);
 	else
 		err = gip_process_pkt_coherent(client, data, len);
