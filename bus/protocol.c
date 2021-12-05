@@ -478,6 +478,10 @@ int gip_send_audio_samples(struct gip_client *client, void *samples)
 
 	gip_copy_audio_samples(client, samples, buf.data);
 
+	/* set actual length */
+	buf.length = client->audio_config_out.packet_size *
+		     adap->audio_packet_count;
+
 	/* always fails on adapter removal */
 	err = adap->ops->submit_buffer(adap, &buf);
 	if (err)
