@@ -493,6 +493,9 @@ int gip_enable_audio(struct gip_client *client)
 	struct gip_adapter *adap = client->adapter;
 	int err;
 
+	if (!adap->ops->enable_audio)
+		return 0;
+
 	err = adap->ops->enable_audio(adap);
 	if (err)
 		dev_err(&client->dev, "%s: enable failed: %d\n",
@@ -507,6 +510,9 @@ int gip_init_audio_in(struct gip_client *client)
 	struct gip_adapter *adap = client->adapter;
 	int err;
 
+	if (!adap->ops->init_audio_in)
+		return 0;
+
 	err = adap->ops->init_audio_in(adap);
 	if (err)
 		dev_err(&client->dev, "%s: init failed: %d\n", __func__, err);
@@ -519,6 +525,9 @@ int gip_init_audio_out(struct gip_client *client)
 {
 	struct gip_adapter *adap = client->adapter;
 	int err;
+
+	if (!adap->ops->init_audio_out)
+		return 0;
 
 	err = adap->ops->init_audio_out(adap,
 					client->audio_config_out.packet_size);
@@ -533,6 +542,9 @@ void gip_disable_audio(struct gip_client *client)
 {
 	struct gip_adapter *adap = client->adapter;
 	int err;
+
+	if (!adap->ops->disable_audio)
+		return;
 
 	/* always fails on adapter removal */
 	err = adap->ops->disable_audio(adap);
