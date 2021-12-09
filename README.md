@@ -16,7 +16,7 @@ This driver is still in active development. Use at your own risk!
 - [x] LED brightness control (using `/sys/class/leds`)
 - [x] Audio capture/playback (through `ALSA`)
 - [x] Power management (suspend/resume and remote wakeup)
-- [ ] Wireless connectivity (via dongle)
+- [x] Wireless connectivity (via dongle)
 
 ## Supported devices
 
@@ -59,6 +59,12 @@ Install xone using the following command:
 
 ```
 sudo ./install.sh --release
+```
+
+Download the firmware for the wireless dongle:
+
+```
+sudo xone-get-firmware.sh
 ```
 
 **NOTE:** Please omit the `--release` flag when asked for your debug logs.
