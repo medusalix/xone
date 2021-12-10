@@ -79,6 +79,20 @@ Make sure to completely uninstall xone before updating:
 sudo ./uninstall.sh
 ```
 
+## Kernel interface
+
+The pairing mode of the dongle can be queried via `sysfs`:
+
+```
+cat /sys/bus/usb/drivers/xone-dongle/*/pairing
+```
+
+You can enable (or disable) the pairing using the following command:
+
+```
+echo 1 | sudo tee /sys/bus/usb/drivers/xone-dongle/*/pairing
+```
+
 ## License
 
 xone is released under the [GNU General Public License, Version 2](LICENSE).
