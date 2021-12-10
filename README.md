@@ -61,13 +61,15 @@ Install xone using the following command:
 sudo ./install.sh --release
 ```
 
+**NOTE:** Please omit the `--release` flag when asked for your debug logs.
+
 Download the firmware for the wireless dongle:
 
 ```
 sudo xone-get-firmware.sh
 ```
 
-**NOTE:** Please omit the `--release` flag when asked for your debug logs.
+**NOTE:** The `--skip-disclaimer` flag might be useful for scripting purposes.
 
 ### Updating
 
