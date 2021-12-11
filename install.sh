@@ -17,6 +17,11 @@ if [ -n "$(dkms status xone)" ]; then
     exit 1
 fi
 
+if [ -f /usr/local/bin/xow ]; then
+    echo 'Please uninstall xow!' >&2
+    exit 1
+fi
+
 version=$(git describe --tags 2> /dev/null || echo unknown)
 source="/usr/src/xone-$version"
 log="/var/lib/dkms/xone/$version/build/make.log"

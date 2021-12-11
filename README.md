@@ -7,6 +7,7 @@ Take a look at [this spreadsheet](https://docs.google.com/spreadsheets/d/1fVGtqH
 ## Important notes
 
 This driver is still in active development. Use at your own risk!
+If you are running `xow` upgrading to `xone` is *highly recommended*!
 **Any feedback including bug reports, suggestions or ideas is [*greatly appreciated*](https://discord.gg/FDQxwWk).**
 
 ## Features
