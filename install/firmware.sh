@@ -22,7 +22,7 @@ if [ "${1:-}" != --skip-disclaimer ]; then
     echo 'https://www.microsoft.com/en-us/legal/terms-of-use'
     echo
     echo 'Press enter to continue!'
-    read -r
+    read -r _
 fi
 
 driver_url='http://download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab'
