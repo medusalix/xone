@@ -60,7 +60,7 @@ static void xone_dongle_prep_packet(struct xone_dongle_client *client,
 	struct ieee80211_qos_hdr hdr = {};
 	struct mt76_txwi txwi = {};
 	u8 data[] = {
-		client->wcid - 1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, client->wcid - 1, 0x00, 0x00, 0x00, 0x00,
 	};
 
 	/* frame is sent from AP (DS) */
