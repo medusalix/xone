@@ -9,7 +9,9 @@
 #include <sound/initval.h>
 #include <sound/pcm.h>
 
-#include "common.h"
+#include "../bus/bus.h"
+
+#define GIP_HS_NAME "Microsoft X-Box One headset"
 
 #define GIP_HS_ENABLE_DELAY msecs_to_jiffies(1000)
 
@@ -26,7 +28,7 @@ static const struct snd_pcm_hardware gip_headset_pcm_hw = {
 };
 
 struct gip_headset {
-	struct gip_common common;
+	struct gip_client *client;
 
 	struct delayed_work enable_work;
 	struct work_struct register_work;
@@ -48,14 +50,13 @@ struct gip_headset {
 static int gip_headset_pcm_open(struct snd_pcm_substream *sub)
 {
 	struct gip_headset *headset = snd_pcm_substream_chip(sub);
-	struct gip_client *client = headset->common.client;
 	struct gip_audio_config *cfg;
 	struct snd_pcm_hardware hw = gip_headset_pcm_hw;
 
 	if (sub->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		cfg = &client->audio_config_out;
+		cfg = &headset->client->audio_config_out;
 	else
-		cfg = &client->audio_config_in;
+		cfg = &headset->client->audio_config_in;
 
 	hw.rate_min = cfg->sample_rate;
 	hw.rate_max = cfg->sample_rate;
@@ -96,7 +97,6 @@ static int gip_headset_pcm_trigger(struct snd_pcm_substream *sub, int cmd)
 {
 	struct gip_headset *headset = snd_pcm_substream_chip(sub);
 	struct gip_headset_stream *stream;
-	struct gip_client *client = headset->common.client;
 
 	if (sub->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		stream = &headset->playback;
@@ -119,7 +119,7 @@ static int gip_headset_pcm_trigger(struct snd_pcm_substream *sub, int cmd)
 
 	if (!stream->substream && sub->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		memset(headset->buffer, 0,
-		       client->audio_config_out.buffer_size);
+		       headset->client->audio_config_out.buffer_size);
 
 	return 0;
 }
@@ -208,8 +208,7 @@ static enum hrtimer_restart gip_headset_send_samples(struct hrtimer *timer)
 	struct gip_headset *headset = container_of(timer, typeof(*headset),
 						   timer);
 	struct gip_headset_stream *stream = &headset->playback;
-	struct gip_client *client = headset->common.client;
-	struct gip_audio_config *cfg = &client->audio_config_out;
+	struct gip_audio_config *cfg = &headset->client->audio_config_out;
 	struct snd_pcm_substream *sub = stream->substream;
 	bool elapsed = false;
 	unsigned long flags;
@@ -228,7 +227,7 @@ static enum hrtimer_restart gip_headset_send_samples(struct hrtimer *timer)
 			snd_pcm_period_elapsed(sub);
 	}
 
-	if (gip_send_audio_samples(client, headset->buffer))
+	if (gip_send_audio_samples(headset->client, headset->buffer))
 		return HRTIMER_NORESTART;
 
 	hrtimer_forward_now(timer, ms_to_ktime(GIP_AUDIO_INTERVAL));
@@ -238,19 +237,18 @@ static enum hrtimer_restart gip_headset_send_samples(struct hrtimer *timer)
 
 static int gip_headset_init_card(struct gip_headset *headset)
 {
-	struct gip_client *client = headset->common.client;
 	struct snd_card *card;
 	int err;
 
-	err = snd_card_new(&client->dev, SNDRV_DEFAULT_IDX1,
+	err = snd_card_new(&headset->client->dev, SNDRV_DEFAULT_IDX1,
 			   SNDRV_DEFAULT_STR1, THIS_MODULE, 0, &card);
 	if (err)
 		return err;
 
 	strscpy(card->driver, "GIP Headset", sizeof(card->driver));
-	strscpy(card->shortname, headset->common.name, sizeof(card->shortname));
+	strscpy(card->shortname, GIP_HS_NAME, sizeof(card->shortname));
 	snprintf(card->longname, sizeof(card->longname), "%s at %s",
-		 headset->common.name, dev_name(&client->dev));
+		 GIP_HS_NAME, dev_name(&headset->client->dev));
 
 	headset->card = card;
 
@@ -279,7 +277,7 @@ static int gip_headset_init_pcm(struct gip_headset *headset)
 
 static int gip_headset_init_audio_out(struct gip_headset *headset)
 {
-	struct gip_client *client = headset->common.client;
+	struct gip_client *client = headset->client;
 	int err;
 
 	/* set headset volume to maximum */
@@ -307,7 +305,7 @@ static void gip_headset_enable(struct work_struct *work)
 	struct gip_headset *headset = container_of(to_delayed_work(work),
 						   typeof(*headset),
 						   enable_work);
-	struct gip_client *client = headset->common.client;
+	struct gip_client *client = headset->client;
 	struct gip_info_element *fmts = client->audio_formats;
 	int err;
 
@@ -325,34 +323,30 @@ static void gip_headset_register(struct work_struct *work)
 {
 	struct gip_headset *headset = container_of(work, typeof(*headset),
 						   register_work);
-	struct gip_client *client = headset->common.client;
+	struct device *dev = &headset->client->dev;
 	int err;
 
 	err = gip_headset_init_card(headset);
 	if (err) {
-		dev_err(&client->dev, "%s: init card failed: %d\n",
-			__func__, err);
+		dev_err(dev, "%s: init card failed: %d\n", __func__, err);
 		return;
 	}
 
 	err = gip_headset_init_pcm(headset);
 	if (err) {
-		dev_err(&client->dev, "%s: init PCM failed: %d\n",
-			__func__, err);
+		dev_err(dev, "%s: init PCM failed: %d\n", __func__, err);
 		goto err_free_card;
 	}
 
 	err = snd_card_register(headset->card);
 	if (err) {
-		dev_err(&client->dev, "%s: register card failed: %d\n",
-			__func__, err);
+		dev_err(dev, "%s: register card failed: %d\n", __func__, err);
 		goto err_free_card;
 	}
 
 	err = gip_headset_init_audio_out(headset);
 	if (err) {
-		dev_err(&client->dev, "%s: init audio out failed: %d\n",
-			__func__, err);
+		dev_err(dev, "%s: init audio out failed: %d\n", __func__, err);
 		goto err_free_card;
 	}
 
@@ -428,8 +422,7 @@ static int gip_headset_probe(struct gip_client *client)
 	if (!headset)
 		return -ENOMEM;
 
-	headset->common.client = client;
-	headset->common.name = "Microsoft X-Box One headset";
+	headset->client = client;
 
 	INIT_DELAYED_WORK(&headset->enable_work, gip_headset_enable);
 	INIT_WORK(&headset->register_work, gip_headset_register);

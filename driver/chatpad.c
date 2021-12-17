@@ -8,8 +8,11 @@
 
 #include "common.h"
 
+#define GIP_CP_NAME "Microsoft X-Box One chatpad"
+
 struct gip_chatpad {
-	struct gip_common common;
+	struct gip_client *client;
+	struct gip_input input;
 
 	struct hid_device *hid_dev;
 };
@@ -35,7 +38,7 @@ static void gip_chatpad_hid_close(struct hid_device *dev)
 static int gip_chatpad_hid_parse(struct hid_device *dev)
 {
 	struct gip_chatpad *chatpad = dev->driver_data;
-	struct gip_client *client = chatpad->common.client;
+	struct gip_client *client = chatpad->client;
 	struct hid_descriptor *desc;
 
 	desc = (struct hid_descriptor *)client->hid_descriptor->data;
@@ -71,15 +74,13 @@ static struct hid_ll_driver gip_chatpad_hid_driver = {
 
 static int gip_chatpad_init_input(struct gip_chatpad *chatpad)
 {
-	struct gip_client *client = chatpad->common.client;
-	struct input_dev *dev = chatpad->common.input_dev;
 	int err;
 
-	input_set_capability(dev, EV_KEY, BTN_MODE);
+	input_set_capability(chatpad->input.dev, EV_KEY, BTN_MODE);
 
-	err = input_register_device(dev);
+	err = input_register_device(chatpad->input.dev);
 	if (err)
-		dev_err(&client->dev, "%s: register failed: %d\n",
+		dev_err(&chatpad->client->dev, "%s: register failed: %d\n",
 			__func__, err);
 
 	return err;
@@ -87,7 +88,7 @@ static int gip_chatpad_init_input(struct gip_chatpad *chatpad)
 
 static int gip_chatpad_init_hid(struct gip_chatpad *chatpad)
 {
-	struct gip_client *client = chatpad->common.client;
+	struct gip_client *client = chatpad->client;
 	struct hid_device *dev;
 	int err;
 
@@ -105,7 +106,7 @@ static int gip_chatpad_init_hid(struct gip_chatpad *chatpad)
 	dev->dev.parent = &client->dev;
 	dev->ll_driver = &gip_chatpad_hid_driver;
 
-	strscpy(dev->name, chatpad->common.name, sizeof(dev->name));
+	strscpy(dev->name, GIP_CP_NAME, sizeof(dev->name));
 	snprintf(dev->phys, sizeof(dev->phys), "%s/input1",
 		 dev_name(&client->dev));
 
@@ -126,10 +127,9 @@ static int gip_chatpad_init_hid(struct gip_chatpad *chatpad)
 static int gip_chatpad_op_guide_button(struct gip_client *client, bool pressed)
 {
 	struct gip_chatpad *chatpad = dev_get_drvdata(&client->dev);
-	struct input_dev *dev = chatpad->common.input_dev;
 
-	input_report_key(dev, BTN_MODE, pressed);
-	input_sync(dev);
+	input_report_key(chatpad->input.dev, BTN_MODE, pressed);
+	input_sync(chatpad->input.dev);
 
 	return 0;
 }
@@ -156,10 +156,9 @@ static int gip_chatpad_probe(struct gip_client *client)
 	if (!chatpad)
 		return -ENOMEM;
 
-	chatpad->common.client = client;
-	chatpad->common.name = "Microsoft X-Box One chatpad";
+	chatpad->client = client;
 
-	err = gip_init_input(&chatpad->common);
+	err = gip_init_input(&chatpad->input, client, GIP_CP_NAME);
 	if (err)
 		return err;
 

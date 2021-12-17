@@ -4,9 +4,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/power_supply.h>
-#include <linux/leds.h>
-#include <linux/input.h>
 
 #include "common.h"
 
@@ -18,12 +15,6 @@ static enum power_supply_property gip_battery_props[] = {
 	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
 	POWER_SUPPLY_PROP_SCOPE,
 	POWER_SUPPLY_PROP_MODEL_NAME,
-};
-
-struct gip_battery {
-	const char *name;
-	int status;
-	int capacity;
 };
 
 static int gip_get_battery_prop(struct power_supply *psy,
@@ -52,56 +43,41 @@ static int gip_get_battery_prop(struct power_supply *psy,
 	return 0;
 }
 
-int gip_init_battery(struct gip_common *common)
+int gip_init_battery(struct gip_battery *batt, struct gip_client *client,
+		     const char *name)
 {
-	struct gip_client *client = common->client;
-	struct gip_battery *batt;
-	struct power_supply_desc *desc;
 	struct power_supply_config cfg = {};
-	struct power_supply *psy;
 
-	batt = devm_kzalloc(&client->dev, sizeof(*batt), GFP_KERNEL);
-	if (!batt)
-		return -ENOMEM;
-
-	desc = devm_kzalloc(&client->dev, sizeof(*desc), GFP_KERNEL);
-	if (!desc)
-		return -ENOMEM;
-
-	batt->name = common->name;
+	batt->name = name;
 	batt->status = POWER_SUPPLY_STATUS_UNKNOWN;
 	batt->capacity = POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN;
 
-	desc->name = dev_name(&client->dev);
-	desc->type = POWER_SUPPLY_TYPE_BATTERY;
-	desc->properties = gip_battery_props;
-	desc->num_properties = ARRAY_SIZE(gip_battery_props);
-	desc->get_property = gip_get_battery_prop;
+	batt->desc.name = dev_name(&client->dev);
+	batt->desc.type = POWER_SUPPLY_TYPE_BATTERY;
+	batt->desc.properties = gip_battery_props;
+	batt->desc.num_properties = ARRAY_SIZE(gip_battery_props);
+	batt->desc.get_property = gip_get_battery_prop;
 
 	cfg.drv_data = batt;
 
-	psy = devm_power_supply_register(&client->dev, desc, &cfg);
-	if (IS_ERR(psy)) {
+	batt->supply = devm_power_supply_register(&client->dev, &batt->desc,
+						  &cfg);
+	if (IS_ERR(batt->supply)) {
 		dev_err(&client->dev, "%s: register failed: %ld\n",
-			__func__, PTR_ERR(psy));
-		return PTR_ERR(psy);
+			__func__, PTR_ERR(batt->supply));
+		return PTR_ERR(batt->supply);
 	}
 
-	power_supply_powers(psy, &client->dev);
-
-	common->power_supply = psy;
+	power_supply_powers(batt->supply, &client->dev);
 
 	return 0;
 }
 EXPORT_SYMBOL_GPL(gip_init_battery);
 
-int gip_report_battery(struct gip_common *common,
+int gip_report_battery(struct gip_battery *batt,
 		       enum gip_battery_type type,
 		       enum gip_battery_level level)
 {
-	struct gip_battery *batt =
-		power_supply_get_drvdata(common->power_supply);
-
 	if (type == GIP_BATT_TYPE_NONE)
 		batt->status = POWER_SUPPLY_STATUS_NOT_CHARGING;
 	else
@@ -118,7 +94,7 @@ int gip_report_battery(struct gip_common *common,
 	else if (level == GIP_BATT_LEVEL_FULL)
 		batt->capacity = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
 
-	power_supply_changed(common->power_supply);
+	power_supply_changed(batt->supply);
 
 	return 0;
 }
@@ -127,25 +103,22 @@ EXPORT_SYMBOL_GPL(gip_report_battery);
 static void gip_led_brightness_set(struct led_classdev *dev,
 				   enum led_brightness brightness)
 {
-	struct gip_client *client = container_of(dev->dev->parent,
-						 typeof(*client), dev);
+	struct gip_led *led = container_of(dev, typeof(*led), dev);
 	int err;
 
 	if (dev->flags & LED_UNREGISTERING)
 		return;
 
-	dev_dbg(&client->dev, "%s: brightness=%d\n", __func__, brightness);
+	dev_dbg(&led->client->dev, "%s: brightness=%d\n", __func__, brightness);
 
-	err = gip_set_led_mode(client, GIP_LED_ON, brightness);
+	err = gip_set_led_mode(led->client, GIP_LED_ON, brightness);
 	if (err)
-		dev_err(&client->dev, "%s: set LED mode failed: %d\n",
+		dev_err(&led->client->dev, "%s: set LED mode failed: %d\n",
 			__func__, err);
 }
 
-int gip_init_led(struct gip_common *common)
+int gip_init_led(struct gip_led *led, struct gip_client *client)
 {
-	struct gip_client *client = common->client;
-	struct led_classdev *dev;
 	int err;
 
 	/* set default brightness */
@@ -156,54 +129,45 @@ int gip_init_led(struct gip_common *common)
 		return err;
 	}
 
-	dev = devm_kzalloc(&client->dev, sizeof(*dev), GFP_KERNEL);
-	if (!dev)
+	led->dev.name = devm_kasprintf(&client->dev, GFP_KERNEL,
+				       "%s:white:status",
+					dev_name(&client->dev));
+	if (!led->dev.name)
 		return -ENOMEM;
 
-	dev->name = devm_kasprintf(&client->dev, GFP_KERNEL,
-				   "%s:white:status", dev_name(&client->dev));
-	if (!dev->name)
-		return -ENOMEM;
+	led->dev.brightness = GIP_LED_BRIGHTNESS_DEFAULT;
+	led->dev.max_brightness = GIP_LED_BRIGHTNESS_MAX;
+	led->dev.brightness_set = gip_led_brightness_set;
 
-	dev->brightness = GIP_LED_BRIGHTNESS_DEFAULT;
-	dev->max_brightness = GIP_LED_BRIGHTNESS_MAX;
-	dev->brightness_set = gip_led_brightness_set;
+	led->client = client;
 
-	err = devm_led_classdev_register(&client->dev, dev);
-	if (err) {
+	err = devm_led_classdev_register(&client->dev, &led->dev);
+	if (err)
 		dev_err(&client->dev, "%s: register failed: %d\n",
 			__func__, err);
-		return err;
-	}
 
-	common->led_dev = dev;
-
-	return 0;
+	return err;
 }
 EXPORT_SYMBOL_GPL(gip_init_led);
 
-int gip_init_input(struct gip_common *common)
+int gip_init_input(struct gip_input *input, struct gip_client *client,
+		   const char *name)
 {
-	struct gip_client *client = common->client;
-	struct input_dev *dev;
-
-	dev = devm_input_allocate_device(&client->dev);
-	if (!dev)
+	input->dev = devm_input_allocate_device(&client->dev);
+	if (!input->dev)
 		return -ENOMEM;
 
-	dev->phys = devm_kasprintf(&client->dev, GFP_KERNEL,
-				   "%s/input0", dev_name(&client->dev));
-	if (!dev->phys)
+	input->dev->phys = devm_kasprintf(&client->dev, GFP_KERNEL,
+					  "%s/input0", dev_name(&client->dev));
+	if (!input->dev->phys)
 		return -ENOMEM;
 
-	dev->name = common->name;
-	dev->id.bustype = BUS_VIRTUAL;
-	dev->id.vendor = client->hardware.vendor;
-	dev->id.product = client->hardware.product;
-	dev->id.version = client->hardware.version;
-	dev->dev.parent = &client->dev;
-
-	common->input_dev = dev;
+	input->dev->name = name;
+	input->dev->id.bustype = BUS_VIRTUAL;
+	input->dev->id.vendor = client->hardware.vendor;
+	input->dev->id.product = client->hardware.product;
+	input->dev->id.version = client->hardware.version;
+	input->dev->dev.parent = &client->dev;
 
 	return 0;
 }
