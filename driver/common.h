@@ -32,9 +32,9 @@ struct gip_input {
 
 int gip_init_battery(struct gip_battery *batt, struct gip_client *client,
 		     const char *name);
-int gip_report_battery(struct gip_battery *batt,
-		       enum gip_battery_type type,
-		       enum gip_battery_level level);
+void gip_report_battery(struct gip_battery *batt,
+			enum gip_battery_type type,
+			enum gip_battery_level level);
 
 int gip_init_led(struct gip_led *led, struct gip_client *client);
 

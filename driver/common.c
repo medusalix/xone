@@ -74,9 +74,9 @@ int gip_init_battery(struct gip_battery *batt, struct gip_client *client,
 }
 EXPORT_SYMBOL_GPL(gip_init_battery);
 
-int gip_report_battery(struct gip_battery *batt,
-		       enum gip_battery_type type,
-		       enum gip_battery_level level)
+void gip_report_battery(struct gip_battery *batt,
+			enum gip_battery_type type,
+			enum gip_battery_level level)
 {
 	if (type == GIP_BATT_TYPE_NONE)
 		batt->status = POWER_SUPPLY_STATUS_NOT_CHARGING;
@@ -95,8 +95,6 @@ int gip_report_battery(struct gip_battery *batt,
 		batt->capacity = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
 
 	power_supply_changed(batt->supply);
-
-	return 0;
 }
 EXPORT_SYMBOL_GPL(gip_report_battery);
 

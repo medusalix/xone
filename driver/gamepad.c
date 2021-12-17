@@ -212,7 +212,9 @@ static int gip_gamepad_op_battery(struct gip_client *client,
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 
-	return gip_report_battery(&gamepad->battery, type, level);
+	gip_report_battery(&gamepad->battery, type, level);
+
+	return 0;
 }
 
 static int gip_gamepad_op_guide_button(struct gip_client *client, bool pressed)
