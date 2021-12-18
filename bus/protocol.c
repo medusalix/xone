@@ -1357,7 +1357,7 @@ int gip_process_buffer(struct gip_adapter *adap, void *data, int len)
 	if (err) {
 		dev_err(&adap->dev, "%s: process packet failed: %d\n",
 			__func__, err);
-		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1,
+		print_hex_dump_debug("packet: ", DUMP_PREFIX_NONE, 16, 1,
 				     data, len, false);
 	}
 
