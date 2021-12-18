@@ -39,9 +39,9 @@ static int gip_chatpad_hid_parse(struct hid_device *dev)
 {
 	struct gip_chatpad *chatpad = dev->driver_data;
 	struct gip_client *client = chatpad->client;
-	struct hid_descriptor *desc;
+	struct gip_info_element *desc_info = client->hid_descriptor;
+	struct hid_descriptor *desc = (struct hid_descriptor *)desc_info->data;
 
-	desc = (struct hid_descriptor *)client->hid_descriptor->data;
 	if (desc->bLength < sizeof(*desc) || desc->bNumDescriptors != 1) {
 		dev_err(&client->dev, "%s: invalid descriptor\n", __func__);
 		return -EINVAL;
@@ -50,9 +50,8 @@ static int gip_chatpad_hid_parse(struct hid_device *dev)
 	dev->version = le16_to_cpu(desc->bcdHID);
 	dev->country = desc->bCountryCode;
 
-	return hid_parse_report(dev,
-				client->hid_descriptor->data + sizeof(*desc),
-				client->hid_descriptor->count - sizeof(*desc));
+	return hid_parse_report(dev, desc_info->data + sizeof(*desc),
+				desc_info->count - sizeof(*desc));
 }
 
 static int gip_chatpad_hid_raw_request(struct hid_device *dev,
