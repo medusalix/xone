@@ -125,10 +125,10 @@ static int xone_mt76_load_ivb(struct xone_mt76 *mt)
 
 static bool xone_mt76_poll(struct xone_mt76 *mt, u32 offset, u32 mask, u32 val)
 {
-	int try;
+	int i;
 	u32 reg;
 
-	for (try = 0; try < XONE_MT_POLL_RETRIES; try++) {
+	for (i = 0; i < XONE_MT_POLL_RETRIES; i++) {
 		reg = xone_mt76_read_register(mt, offset);
 		if ((reg & mask) == val)
 			return true;

@@ -385,14 +385,14 @@ static int xone_dongle_process_frame(struct xone_dongle *dongle,
 	type = le16_to_cpu(hdr->frame_control);
 
 	switch (type & (IEEE80211_FCTL_FTYPE | IEEE80211_FCTL_STYPE)) {
-	case (IEEE80211_FTYPE_DATA | IEEE80211_STYPE_QOS_DATA):
+	case IEEE80211_FTYPE_DATA | IEEE80211_STYPE_QOS_DATA:
 		skb_pull(skb, sizeof(struct ieee80211_qos_hdr));
 		return xone_dongle_handle_qos_data(dongle, skb, wcid);
-	case (IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_ASSOC_REQ):
+	case IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_ASSOC_REQ:
 		return xone_dongle_handle_association(dongle, hdr->addr2);
-	case (IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_DISASSOC):
+	case IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_DISASSOC:
 		return xone_dongle_handle_disassociation(dongle, wcid);
-	case (IEEE80211_FTYPE_MGMT | XONE_MT_WLAN_RESERVED):
+	case IEEE80211_FTYPE_MGMT | XONE_MT_WLAN_RESERVED:
 		skb_pull(skb, sizeof(struct ieee80211_hdr_3addr));
 		return xone_dongle_handle_reserved(dongle, skb,
 						   wcid, hdr->addr2);
