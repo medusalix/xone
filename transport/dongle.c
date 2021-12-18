@@ -8,7 +8,6 @@
 #include <linux/bitfield.h>
 #include <linux/usb.h>
 #include <linux/sysfs.h>
-#include <linux/kstrtox.h>
 #include <linux/ieee80211.h>
 #include <net/cfg80211.h>
 
@@ -190,7 +189,7 @@ static ssize_t xone_dongle_pairing_show(struct device *dev,
 	struct usb_interface *intf = to_usb_interface(dev);
 	struct xone_dongle *dongle = usb_get_intfdata(intf);
 
-	return sysfs_emit(buf, "%d\n", dongle->pairing);
+	return sprintf(buf, "%d\n", dongle->pairing);
 }
 
 static ssize_t xone_dongle_pairing_store(struct device *dev,

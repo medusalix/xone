@@ -5,7 +5,6 @@
 
 #include <linux/module.h>
 #include <linux/sysfs.h>
-#include <linux/kstrtox.h>
 
 #include "common.h"
 
@@ -123,7 +122,7 @@ static ssize_t gip_led_mode_show(struct device *dev,
 	struct led_classdev *cdev = dev_get_drvdata(dev);
 	struct gip_led *led = container_of(cdev, typeof(*led), dev);
 
-	return sysfs_emit(buf, "%u\n", led->mode);
+	return sprintf(buf, "%u\n", led->mode);
 }
 
 static ssize_t gip_led_mode_store(struct device *dev,
