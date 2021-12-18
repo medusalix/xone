@@ -84,8 +84,7 @@ static void xone_dongle_prep_packet(struct xone_dongle_client *client,
 	memcpy(skb_push(skb, sizeof(txwi)), &txwi, sizeof(txwi));
 	memcpy(skb_push(skb, sizeof(data)), data, sizeof(data));
 
-	xone_mt76_prep_message(skb, FIELD_PREP(MT_MCU_MSG_PORT,
-					       MT_CPU_TX_PORT));
+	xone_mt76_prep_command(skb, 0);
 }
 
 static int xone_dongle_get_buffer(struct gip_adapter *adap,

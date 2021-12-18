@@ -242,17 +242,24 @@ void xone_mt76_prep_message(struct sk_buff *skb, u32 info)
 	len = round_up(skb->len, sizeof(u32));
 	pad = len - skb->len + MT_CMD_HDR_LEN;
 
-	info |= MT_MCU_MSG_TYPE_CMD | FIELD_PREP(MT_MCU_MSG_LEN, len);
-	put_unaligned_le32(info, skb_push(skb, MT_CMD_HDR_LEN));
+	put_unaligned_le32(info | FIELD_PREP(MT_MCU_MSG_LEN, len),
+			   skb_push(skb, MT_CMD_HDR_LEN));
 	memset(skb_put(skb, pad), 0, pad);
 }
 
-static int xone_mt76_send_message(struct xone_mt76 *mt, struct sk_buff *skb,
-				  u32 info)
+void xone_mt76_prep_command(struct sk_buff *skb, int cmd)
+{
+	xone_mt76_prep_message(skb, MT_MCU_MSG_TYPE_CMD |
+			       FIELD_PREP(MT_MCU_MSG_PORT, MT_CPU_TX_PORT) |
+			       FIELD_PREP(MT_MCU_MSG_CMD_TYPE, cmd));
+}
+
+static int xone_mt76_send_command(struct xone_mt76 *mt, struct sk_buff *skb,
+				  int cmd)
 {
 	int err;
 
-	xone_mt76_prep_message(skb, info);
+	xone_mt76_prep_command(skb, cmd);
 
 	err = usb_bulk_msg(mt->udev, usb_sndbulkpipe(mt->udev, XONE_MT_EP_OUT),
 			   skb->data, skb->len, NULL, XONE_MT_USB_TIMEOUT);
@@ -261,19 +268,10 @@ static int xone_mt76_send_message(struct xone_mt76 *mt, struct sk_buff *skb,
 	return err;
 }
 
-static int xone_mt76_send_command(struct xone_mt76 *mt, struct sk_buff *skb,
-				  int cmd)
-{
-	u32 info = FIELD_PREP(MT_MCU_MSG_PORT, MT_CPU_TX_PORT) |
-		   FIELD_PREP(MT_MCU_MSG_CMD_TYPE, cmd);
-
-	return xone_mt76_send_message(mt, skb, info);
-}
-
 static int xone_mt76_send_wlan(struct xone_mt76 *mt, struct sk_buff *skb)
 {
 	struct mt76_txwi txwi = {};
-	u32 info;
+	int err;
 
 	/* wait for acknowledgment */
 	/* ignore wireless client identifier (WCID) */
@@ -284,16 +282,21 @@ static int xone_mt76_send_wlan(struct xone_mt76 *mt, struct sk_buff *skb)
 	txwi.wcid = 0xff;
 	txwi.len_ctl = cpu_to_le16(skb->len);
 
-	/* enhanced distributed channel access (EDCA) */
-	/* wireless information valid (WIV) */
-	info = FIELD_PREP(MT_TXD_INFO_DPORT, MT_WLAN_PORT) |
-	       FIELD_PREP(MT_TXD_INFO_QSEL, MT_QSEL_EDCA) |
-	       MT_TXD_INFO_WIV |
-	       MT_TXD_INFO_80211;
-
 	memcpy(skb_push(skb, sizeof(txwi)), &txwi, sizeof(txwi));
 
-	return xone_mt76_send_message(mt, skb, info);
+	/* enhanced distributed channel access (EDCA) */
+	/* wireless information valid (WIV) */
+	xone_mt76_prep_message(skb,
+			       FIELD_PREP(MT_TXD_INFO_DPORT, MT_WLAN_PORT) |
+			       FIELD_PREP(MT_TXD_INFO_QSEL, MT_QSEL_EDCA) |
+			       MT_TXD_INFO_WIV |
+			       MT_TXD_INFO_80211);
+
+	err = usb_bulk_msg(mt->udev, usb_sndbulkpipe(mt->udev, XONE_MT_EP_OUT),
+			   skb->data, skb->len, NULL, XONE_MT_USB_TIMEOUT);
+	consume_skb(skb);
+
+	return err;
 }
 
 static int xone_mt76_select_function(struct xone_mt76 *mt,
