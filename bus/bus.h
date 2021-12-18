@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <linux/types.h>
 #include <linux/device.h>
 
 #include "protocol.h"
