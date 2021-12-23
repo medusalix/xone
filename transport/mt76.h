@@ -11,6 +11,8 @@
 #define XONE_MT_EP_IN_WLAN 0x04
 #define XONE_MT_EP_OUT 0x04
 
+#define XONE_MT_NUM_CHANNELS 12
+
 /* 802.11 frame subtype: reserved */
 #define XONE_MT_WLAN_RESERVED 0x70
 
@@ -28,12 +30,24 @@ enum xone_mt76_event {
 	XONE_MT_EVT_CLIENT_LOST = 0x0e,
 };
 
+struct xone_mt76_channel {
+	u8 index;
+	u8 band;
+	enum mt76_phy_bandwidth bandwidth;
+	enum mt76_cal_channel_group group;
+	bool scan;
+	u8 power;
+};
+
 struct xone_mt76 {
 	struct device *dev;
 	struct usb_device *udev;
 
 	__le32 control_data;
 	u8 address[ETH_ALEN];
+
+	struct xone_mt76_channel channels[XONE_MT_NUM_CHANNELS];
+	struct xone_mt76_channel *channel;
 };
 
 struct sk_buff *xone_mt76_alloc_message(int len, gfp_t gfp);

@@ -45,7 +45,7 @@ struct xone_mt76_msg_load_cr {
 	u8 padding;
 } __packed;
 
-struct xone_mt76_msg_config_channel {
+struct xone_mt76_msg_switch_channel {
 	u8 channel;
 	u8 padding1[3];
 	__le16 tx_rx_setting;
@@ -55,14 +55,6 @@ struct xone_mt76_msg_config_channel {
 	u8 scan;
 	u8 unknown;
 } __packed;
-
-struct xone_mt76_channel {
-	u8 index;
-	u8 band;
-	enum mt76_phy_bandwidth bandwidth;
-	enum mt76_cal_channel_group group;
-	bool scan;
-};
 
 static u32 xone_mt76_read_register(struct xone_mt76 *mt, u32 addr)
 {
@@ -165,58 +157,6 @@ static int xone_mt76_read_efuse(struct xone_mt76 *mt, u16 addr,
 	}
 
 	return 0;
-}
-
-static const struct xone_mt76_channel xone_mt76_channels[] = {
-	{ 0x01, XONE_MT_CH_2G_LOW, MT_PHY_BW_20, 0, true },
-	{ 0x06, XONE_MT_CH_2G_MID, MT_PHY_BW_20, 0, true },
-	{ 0x0b, XONE_MT_CH_2G_HIGH, MT_PHY_BW_20, 0, true },
-	{ 0x24, XONE_MT_CH_5G_LOW, MT_PHY_BW_40, MT_CH_5G_UNII_1, true },
-	{ 0x28, XONE_MT_CH_5G_LOW, MT_PHY_BW_40, MT_CH_5G_UNII_1, false },
-	{ 0x2c, XONE_MT_CH_5G_HIGH, MT_PHY_BW_40, MT_CH_5G_UNII_1, true },
-	{ 0x30, XONE_MT_CH_5G_HIGH, MT_PHY_BW_40, MT_CH_5G_UNII_1, false },
-	{ 0x95, XONE_MT_CH_5G_LOW, MT_PHY_BW_80, MT_CH_5G_UNII_3, true },
-	{ 0x99, XONE_MT_CH_5G_LOW, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
-	{ 0x9d, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, true },
-	{ 0xa1, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
-	{ 0xa5, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
-};
-
-static u8 xone_mt76_get_channel_power(struct xone_mt76 *mt,
-				      struct xone_mt76_channel chan)
-{
-	u16 addr;
-	u8 idx, target, offset;
-	u8 entry[8];
-	int err;
-
-	if (chan.bandwidth == MT_PHY_BW_20) {
-		addr = MT_EE_TX_POWER_0_START_2G;
-		idx = 4;
-	} else {
-		/* each group has its own power table */
-		addr = MT_EE_TX_POWER_0_START_5G +
-		       chan.group * MT_TX_POWER_GROUP_SIZE_5G;
-		idx = 5;
-	}
-
-	err = xone_mt76_read_efuse(mt, addr, entry, sizeof(entry));
-	if (err) {
-		dev_err(mt->dev, "%s: read EFUSE failed: %d\n", __func__, err);
-		return 0;
-	}
-
-	target = entry[idx];
-	offset = entry[idx + chan.band];
-
-	/* offset disabled */
-	if (!(offset & BIT(7)))
-		return target;
-
-	/* increase or decrease power by offset (in 0.5 dB steps) */
-	return (offset & BIT(6)) ?
-	       target + (offset & 0x3f) :
-	       target - (offset & 0x3f);
 }
 
 struct sk_buff *xone_mt76_alloc_message(int len, gfp_t gfp)
@@ -390,11 +330,11 @@ static int xone_mt76_set_power_mode(struct xone_mt76 *mt,
 	return xone_mt76_send_command(mt, skb, MT_CMD_POWER_SAVING_OP);
 }
 
-static int xone_mt76_config_channel(struct xone_mt76 *mt,
-				    struct xone_mt76_channel chan)
+static int xone_mt76_switch_channel(struct xone_mt76 *mt,
+				    struct xone_mt76_channel *chan)
 {
 	struct sk_buff *skb;
-	struct xone_mt76_msg_config_channel msg = {};
+	struct xone_mt76_msg_switch_channel msg = {};
 
 	skb = xone_mt76_alloc_message(sizeof(msg), GFP_KERNEL);
 	if (!skb)
@@ -402,15 +342,12 @@ static int xone_mt76_config_channel(struct xone_mt76 *mt,
 
 	/* select TX and RX stream 1 */
 	/* enable or disable scanning (unknown purpose) */
-	msg.channel = chan.index;
+	msg.channel = chan->index;
 	msg.tx_rx_setting = cpu_to_le16(0x0101);
-	msg.bandwidth = chan.bandwidth;
-	msg.tx_power = xone_mt76_get_channel_power(mt, chan);
-	msg.scan = chan.scan;
+	msg.bandwidth = chan->bandwidth;
+	msg.tx_power = chan->power;
+	msg.scan = chan->scan;
 	skb_put_data(skb, &msg, sizeof(msg));
-
-	dev_dbg(mt->dev, "%s: channel=%d, power=%d\n", __func__,
-		chan.index, msg.tx_power);
 
 	return xone_mt76_send_command(mt, skb, MT_CMD_SWITCH_CHANNEL_OP);
 }
@@ -566,31 +503,157 @@ err_free_firmware:
 	return err;
 }
 
-static int xone_mt76_init_channels(struct xone_mt76 *mt)
+static const struct xone_mt76_channel
+xone_mt76_channels[XONE_MT_NUM_CHANNELS] = {
+	{ 0x01, XONE_MT_CH_2G_LOW, MT_PHY_BW_20, 0, true },
+	{ 0x06, XONE_MT_CH_2G_MID, MT_PHY_BW_20, 0, true },
+	{ 0x0b, XONE_MT_CH_2G_HIGH, MT_PHY_BW_20, 0, true },
+	{ 0x24, XONE_MT_CH_5G_LOW, MT_PHY_BW_40, MT_CH_5G_UNII_1, true },
+	{ 0x28, XONE_MT_CH_5G_LOW, MT_PHY_BW_40, MT_CH_5G_UNII_1, false },
+	{ 0x2c, XONE_MT_CH_5G_HIGH, MT_PHY_BW_40, MT_CH_5G_UNII_1, true },
+	{ 0x30, XONE_MT_CH_5G_HIGH, MT_PHY_BW_40, MT_CH_5G_UNII_1, false },
+	{ 0x95, XONE_MT_CH_5G_LOW, MT_PHY_BW_80, MT_CH_5G_UNII_3, true },
+	{ 0x99, XONE_MT_CH_5G_LOW, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
+	{ 0x9d, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, true },
+	{ 0xa1, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
+	{ 0xa5, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
+};
+
+static int xone_mt76_set_channel_candidates(struct xone_mt76 *mt)
 {
-	u8 candidates[] = {
-		0x01, 0x00, 0x00, 0x00, 0xa5, 0x00, 0x00, 0x00,
-		0x0b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-		0x06, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00,
-		0x24, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
-		0x2c, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00,
-		0x95, 0x00, 0x00, 0x00, 0x99, 0x00, 0x00, 0x00,
-		0x9d, 0x00, 0x00, 0x00, 0xa1, 0x00, 0x00, 0x00,
-	};
+	struct sk_buff *skb;
+	u8 best_chan = mt->channel->index;
+	u8 chan;
 	int i, err;
 
-	/* original driver increases power for channels 0x24 to 0x30 */
-	for (i = 0; i < ARRAY_SIZE(xone_mt76_channels); i++) {
-		err = xone_mt76_config_channel(mt, xone_mt76_channels[i]);
-		if (err) {
-			dev_err(mt->dev, "%s: config channel failed: %d\n",
-				__func__, err);
-			return err;
-		}
+	skb = alloc_skb(sizeof(u32) * 2 + sizeof(u32) * XONE_MT_NUM_CHANNELS,
+			GFP_KERNEL);
+	if (!skb)
+		return -ENOMEM;
+
+	put_unaligned_le32(1, skb_put(skb, sizeof(u32)));
+	put_unaligned_le32(best_chan, skb_put(skb, sizeof(u32)));
+	put_unaligned_le32(XONE_MT_NUM_CHANNELS - 1, skb_put(skb, sizeof(u32)));
+
+	for (i = 0; i < XONE_MT_NUM_CHANNELS; i++) {
+		chan = mt->channels[i].index;
+		if (chan != best_chan)
+			put_unaligned_le32(chan, skb_put(skb, sizeof(u32)));
 	}
 
-	return xone_mt76_send_ms_command(mt, XONE_MT_SET_CHAN_CANDIDATES,
-					 candidates, sizeof(candidates));
+	err = xone_mt76_send_ms_command(mt, XONE_MT_SET_CHAN_CANDIDATES,
+					skb->data, skb->len);
+	consume_skb(skb);
+
+	return err;
+}
+
+static int xone_mt76_get_channel_power(struct xone_mt76 *mt,
+				       struct xone_mt76_channel *chan)
+{
+	u16 addr;
+	u8 idx, target, offset;
+	u8 entry[8];
+	int err;
+
+	if (chan->bandwidth == MT_PHY_BW_20) {
+		addr = MT_EE_TX_POWER_0_START_2G;
+		idx = 4;
+	} else {
+		/* each group has its own power table */
+		addr = MT_EE_TX_POWER_0_START_5G +
+		       chan->group * MT_TX_POWER_GROUP_SIZE_5G;
+		idx = 5;
+	}
+
+	err = xone_mt76_read_efuse(mt, addr, entry, sizeof(entry));
+	if (err) {
+		dev_err(mt->dev, "%s: read EFUSE failed: %d\n", __func__, err);
+		return err;
+	}
+
+	target = entry[idx];
+	offset = entry[idx + chan->band];
+
+	/* increase or decrease power by offset (in 0.5 dB steps) */
+	if (offset & BIT(7))
+		chan->power = (offset & BIT(6)) ?
+			      target + (offset & 0x3f) :
+			      target - (offset & 0x3f);
+	else
+		chan->power = target;
+
+	return 0;
+}
+
+static int xone_mt76_evaluate_channels(struct xone_mt76 *mt)
+{
+	struct xone_mt76_channel *chan;
+	int i, err;
+
+	memcpy(mt->channels, xone_mt76_channels, sizeof(xone_mt76_channels));
+
+	for (i = 0; i < XONE_MT_NUM_CHANNELS; i++) {
+		chan = &mt->channels[i];
+
+		/* original driver increases power for channels 0x24 to 0x30 */
+		err = xone_mt76_get_channel_power(mt, chan);
+		if (err)
+			return err;
+
+		err = xone_mt76_switch_channel(mt, chan);
+		if (err)
+			return err;
+
+		dev_dbg(mt->dev, "%s: channel=%u, power=%u\n", __func__,
+			chan->index, chan->power);
+	}
+
+	/* the last channel might not be the best one */
+	mt->channel = chan;
+
+	return 0;
+}
+
+static int xone_mt76_init_channels(struct xone_mt76 *mt)
+{
+	int err;
+
+	/* enable promiscuous mode */
+	xone_mt76_write_register(mt, MT_RX_FILTR_CFG, 0x014f13);
+
+	err = xone_mt76_evaluate_channels(mt);
+	if (err)
+		return err;
+
+	/* disable promiscuous mode */
+	xone_mt76_write_register(mt, MT_RX_FILTR_CFG, 0x017f17);
+
+	dev_dbg(mt->dev, "%s: channel=%u\n", __func__, mt->channel->index);
+
+	mt->channel->scan = true;
+
+	err = xone_mt76_switch_channel(mt, mt->channel);
+	if (err)
+		return err;
+
+	err = xone_mt76_set_power_mode(mt, MT_RADIO_OFF);
+	if (err)
+		return err;
+
+	msleep(50);
+
+	err = xone_mt76_set_power_mode(mt, MT_RADIO_ON);
+	if (err)
+		return err;
+
+	mt->channel->scan = false;
+
+	err = xone_mt76_switch_channel(mt, mt->channel);
+	if (err)
+		return err;
+
+	return xone_mt76_set_channel_candidates(mt);
 }
 
 static int xone_mt76_init_address(struct xone_mt76 *mt)
@@ -820,6 +883,8 @@ int xone_mt76_init_chip(struct xone_mt76 *mt)
 	err = xone_mt76_init_channels(mt);
 	if (err)
 		return err;
+
+	msleep(1000);
 
 	return xone_mt76_set_pairing(mt, false);
 }
