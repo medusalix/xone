@@ -187,7 +187,7 @@ void xone_mt76_prep_message(struct sk_buff *skb, u32 info)
 	memset(skb_put(skb, pad), 0, pad);
 }
 
-void xone_mt76_prep_command(struct sk_buff *skb, int cmd)
+void xone_mt76_prep_command(struct sk_buff *skb, enum mt76_mcu_cmd cmd)
 {
 	xone_mt76_prep_message(skb, MT_MCU_MSG_TYPE_CMD |
 			       FIELD_PREP(MT_MCU_MSG_PORT, MT_CPU_TX_PORT) |
@@ -195,7 +195,7 @@ void xone_mt76_prep_command(struct sk_buff *skb, int cmd)
 }
 
 static int xone_mt76_send_command(struct xone_mt76 *mt, struct sk_buff *skb,
-				  int cmd)
+				  enum mt76_mcu_cmd cmd)
 {
 	int err;
 
@@ -296,8 +296,7 @@ static int xone_mt76_write_burst(struct xone_mt76 *mt, u32 idx,
 		return -ENOMEM;
 
 	/* register offset in memory */
-	idx += MT_MCU_MEMMAP_WLAN;
-	put_unaligned_le32(idx, skb_put(skb, sizeof(idx)));
+	put_unaligned_le32(idx + MT_MCU_MEMMAP_WLAN, skb_put(skb, sizeof(idx)));
 	skb_put_data(skb, data, len);
 
 	return xone_mt76_send_command(mt, skb, MT_CMD_BURST_WRITE);
