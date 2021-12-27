@@ -211,6 +211,7 @@ static enum hrtimer_restart gip_headset_send_samples(struct hrtimer *timer)
 	struct gip_audio_config *cfg = &headset->client->audio_config_out;
 	struct snd_pcm_substream *sub = stream->substream;
 	bool elapsed = false;
+	int err;
 	unsigned long flags;
 
 	if (sub) {
@@ -227,7 +228,9 @@ static enum hrtimer_restart gip_headset_send_samples(struct hrtimer *timer)
 			snd_pcm_period_elapsed(sub);
 	}
 
-	if (gip_send_audio_samples(headset->client, headset->buffer))
+	/* retry if driver runs out of buffers */
+	err = gip_send_audio_samples(headset->client, headset->buffer);
+	if (err && err != -ENOSPC)
 		return HRTIMER_NORESTART;
 
 	hrtimer_forward_now(timer, ms_to_ktime(GIP_AUDIO_INTERVAL));

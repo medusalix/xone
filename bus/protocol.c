@@ -469,6 +469,7 @@ int gip_send_audio_samples(struct gip_client *client, void *samples)
 
 	buf.type = GIP_BUF_AUDIO;
 
+	/* returns ENOSPC if no buffer is available */
 	err = adap->ops->get_buffer(adap, &buf);
 	if (err) {
 		dev_err(&client->dev, "%s: get buffer failed: %d\n",
