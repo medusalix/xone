@@ -1177,8 +1177,8 @@ static int gip_parse_chunk(struct gip_client *client,
 	if (hdr->length & GIP_HDR_EXTENDED)
 		chunk->offset = chunk_hdr->offset;
 	else
-		chunk->offset = (chunk_hdr->offset_extra & 0x7f) |
-				(chunk_hdr->offset << 7);
+		chunk->offset = (chunk_hdr->offset << 7) |
+				(chunk_hdr->offset_extra & GENMASK(6, 0));
 
 	chunk->data = data + sizeof(*hdr) + sizeof(*chunk_hdr);
 	chunk->length = len - sizeof(*hdr) - sizeof(*chunk_hdr);

@@ -149,7 +149,7 @@ static int xone_mt76_read_efuse(struct xone_mt76 *mt, u16 addr,
 
 	for (i = 0; i < len; i += sizeof(u32)) {
 		/* block data offset (multiple of 32 bits) */
-		offset = (addr & 0x0c) + i;
+		offset = (addr & GENMASK(3, 2)) + i;
 		val = xone_mt76_read_register(mt, MT_EFUSE_DATA_BASE + offset);
 		remaining = min_t(int, len - i, sizeof(u32));
 
@@ -577,8 +577,8 @@ static int xone_mt76_get_channel_power(struct xone_mt76 *mt,
 	/* increase or decrease power by offset (in 0.5 dB steps) */
 	if (offset & BIT(7))
 		chan->power = (offset & BIT(6)) ?
-			      target + (offset & 0x3f) :
-			      target - (offset & 0x3f);
+			      target + (offset & GENMASK(5, 0)) :
+			      target - (offset & GENMASK(5, 0));
 	else
 		chan->power = target;
 
@@ -701,7 +701,7 @@ static int xone_mt76_calibrate_crystal(struct xone_mt76 *mt)
 		return err;
 
 	val = (trim[3] << 8) | trim[2];
-	offset = val & 0x7f;
+	offset = val & GENMASK(6, 0);
 	if ((val & 0xff) == 0xff)
 		offset = 0;
 	else if (val & BIT(7))
@@ -720,7 +720,7 @@ static int xone_mt76_calibrate_crystal(struct xone_mt76 *mt)
 			val = 0x14;
 	}
 
-	val = (val & 0x7f) + offset;
+	val = (val & GENMASK(6, 0)) + offset;
 	ctrl = xone_mt76_read_register(mt, MT_XO_CTRL5 | MT_VEND_TYPE_CFG);
 	xone_mt76_write_register(mt, MT_XO_CTRL5 | MT_VEND_TYPE_CFG,
 				 (ctrl & ~MT_XO_CTRL5_C2_VAL) | (val << 8));
