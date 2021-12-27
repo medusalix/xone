@@ -1084,19 +1084,6 @@ static int gip_handle_pkt_hid_report(struct gip_client *client,
 	return client->drv->ops.hid_report(client, data, len);
 }
 
-static int gip_handle_pkt_input(struct gip_client *client,
-				struct gip_header *hdr,
-				void *data, int len)
-{
-	if (len != hdr->length)
-		return -EINVAL;
-
-	if (!client->drv || !client->drv->ops.input)
-		return 0;
-
-	return client->drv->ops.input(client, data, len);
-}
-
 static int gip_handle_pkt_audio_samples(struct gip_client *client,
 					struct gip_header *hdr,
 					void *data, int len)
@@ -1145,6 +1132,19 @@ static int gip_dispatch_pkt_internal(struct gip_client *client,
 	}
 
 	return 0;
+}
+
+static int gip_handle_pkt_input(struct gip_client *client,
+				struct gip_header *hdr,
+				void *data, int len)
+{
+	if (len != hdr->length)
+		return -EINVAL;
+
+	if (!client->drv || !client->drv->ops.input)
+		return 0;
+
+	return client->drv->ops.input(client, data, len);
 }
 
 static int gip_dispatch_pkt(struct gip_client *client,
