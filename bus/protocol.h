@@ -96,6 +96,7 @@ struct gip_classes {
 struct gip_client;
 struct gip_adapter;
 
+bool gip_is_accessory(struct gip_client *client);
 int gip_set_power_mode(struct gip_client *client, enum gip_power_mode mode);
 int gip_complete_authentication(struct gip_client *client);
 int gip_suggest_audio_format(struct gip_client *client,

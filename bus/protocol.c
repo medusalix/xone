@@ -231,6 +231,12 @@ err_unlock:
 	return err;
 }
 
+bool gip_is_accessory(struct gip_client *client)
+{
+	return client->id > 0;
+}
+EXPORT_SYMBOL_GPL(gip_is_accessory);
+
 static int gip_acknowledge_pkt(struct gip_client *client,
 			       struct gip_header *ack, u16 len, u16 remaining)
 {
