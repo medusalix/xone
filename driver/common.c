@@ -95,7 +95,8 @@ void gip_report_battery(struct gip_battery *batt,
 	else if (level == GIP_BATT_LEVEL_FULL)
 		batt->capacity = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
 
-	power_supply_changed(batt->supply);
+	if (batt->supply)
+		power_supply_changed(batt->supply);
 }
 EXPORT_SYMBOL_GPL(gip_report_battery);
 
