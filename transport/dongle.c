@@ -38,7 +38,8 @@ struct xone_dongle_client {
 struct xone_dongle {
 	struct xone_mt76 mt;
 
-	struct usb_anchor urbs_in;
+	struct usb_anchor urbs_in_idle;
+	struct usb_anchor urbs_in_busy;
 	struct workqueue_struct *message_wq;
 	struct work_struct message_work;
 	struct sk_buff_head message_queue;
@@ -494,6 +495,7 @@ static void xone_dongle_complete_in(struct urb *urb)
 	case -ENOENT:
 	case -ECONNRESET:
 	case -ESHUTDOWN:
+		usb_anchor_urb(urb, &dongle->urbs_in_idle);
 		return;
 	default:
 		goto resubmit;
@@ -511,16 +513,14 @@ static void xone_dongle_complete_in(struct urb *urb)
 	queue_work(dongle->message_wq, &dongle->message_work);
 
 resubmit:
-	usb_anchor_urb(urb, &dongle->urbs_in);
-
 	/* can fail during USB device removal */
 	err = usb_submit_urb(urb, GFP_ATOMIC);
 	if (err) {
 		dev_dbg(dongle->mt.dev, "%s: submit failed: %d\n",
 			__func__, err);
-		usb_unanchor_urb(urb);
-		usb_free_coherent(urb->dev, urb->transfer_buffer_length,
-				  urb->transfer_buffer, urb->transfer_dma);
+		usb_anchor_urb(urb, &dongle->urbs_in_idle);
+	} else {
+		usb_anchor_urb(urb, &dongle->urbs_in_busy);
 	}
 }
 
@@ -534,7 +534,7 @@ static void xone_dongle_complete_out(struct urb *urb)
 }
 
 static int xone_dongle_init_urbs_in(struct xone_dongle *dongle,
-				    int ep, size_t buf_len)
+				    int ep, int buf_len)
 {
 	struct xone_mt76 *mt = &dongle->mt;
 	struct urb *urb;
@@ -546,7 +546,7 @@ static int xone_dongle_init_urbs_in(struct xone_dongle *dongle,
 		if (!urb)
 			return -ENOMEM;
 
-		usb_anchor_urb(urb, &dongle->urbs_in);
+		usb_anchor_urb(urb, &dongle->urbs_in_busy);
 		usb_free_urb(urb);
 
 		buf = usb_alloc_coherent(mt->udev, buf_len,
@@ -595,7 +595,8 @@ static int xone_dongle_init(struct xone_dongle *dongle)
 
 	init_usb_anchor(&dongle->urbs_out_idle);
 	init_usb_anchor(&dongle->urbs_out_busy);
-	init_usb_anchor(&dongle->urbs_in);
+	init_usb_anchor(&dongle->urbs_in_idle);
+	init_usb_anchor(&dongle->urbs_in_busy);
 
 	err = xone_dongle_init_urbs_out(dongle);
 	if (err)
@@ -631,7 +632,7 @@ static void xone_dongle_destroy(struct xone_dongle *dongle)
 	struct urb *urb;
 	int i;
 
-	usb_kill_anchored_urbs(&dongle->urbs_in);
+	usb_kill_anchored_urbs(&dongle->urbs_in_busy);
 	destroy_workqueue(dongle->message_wq);
 	skb_queue_purge(&dongle->message_queue);
 
@@ -642,6 +643,7 @@ static void xone_dongle_destroy(struct xone_dongle *dongle)
 
 		gip_destroy_adapter(client->adapter);
 		kfree(client);
+		dongle->clients[i] = NULL;
 	}
 
 	usb_kill_anchored_urbs(&dongle->urbs_out_busy);
@@ -649,7 +651,7 @@ static void xone_dongle_destroy(struct xone_dongle *dongle)
 	while ((urb = usb_get_from_anchor(&dongle->urbs_out_idle)))
 		usb_free_urb(urb);
 
-	while ((urb = usb_get_from_anchor(&dongle->urbs_in))) {
+	while ((urb = usb_get_from_anchor(&dongle->urbs_in_idle))) {
 		usb_free_coherent(urb->dev, urb->transfer_buffer_length,
 				  urb->transfer_buffer, urb->transfer_dma);
 		usb_free_urb(urb);
