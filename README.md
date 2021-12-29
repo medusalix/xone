@@ -25,11 +25,11 @@ If you are running `xow` upgrading to `xone` is *highly recommended*!
     - [x] Xbox One Controllers
     - [x] Xbox Series X|S Controllers
     - [x] Third party controllers (PowerA, PDP, etc.)
-- [ ] Headsets
+- [x] Headsets
     - [x] Xbox One Chat Headset
     - [x] Xbox One Stereo Headset (adapter or jack)
-    - [ ] Xbox Wireless Headset
-    - [ ] Third party wireless headsets (SteelSeries, Razer, etc.)
+    - [x] Xbox Wireless Headset
+    - [x] Third party wireless headsets (SteelSeries, Razer, etc.)
 - [ ] Racing wheels
 - [x] Xbox One Chatpad
 - [x] Xbox Adaptive Controller
