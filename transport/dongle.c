@@ -673,8 +673,10 @@ static int xone_dongle_probe(struct usb_interface *intf,
 
 	usb_reset_device(dongle->mt.udev);
 
-	dongle->message_wq = alloc_workqueue("xone",
-					     WQ_MEM_RECLAIM | WQ_HIGHPRI, 0);
+	dongle->message_wq = alloc_workqueue("xone_dongle",
+					     WQ_UNBOUND |
+					     WQ_MEM_RECLAIM |
+					     WQ_HIGHPRI, 0);
 	if (!dongle->message_wq)
 		return -ENOMEM;
 
