@@ -35,6 +35,7 @@ enum xone_mt76_ms_command {
 	XONE_MT_SET_MAC_ADDRESS = 0x00,
 	XONE_MT_ADD_CLIENT = 0x01,
 	XONE_MT_REMOVE_CLIENT = 0x02,
+	XONE_MT_SET_IDLE_TIME = 0x05,
 	XONE_MT_SET_CHAN_CANDIDATES = 0x07,
 };
 
@@ -655,6 +656,14 @@ static int xone_mt76_init_channels(struct xone_mt76 *mt)
 	return xone_mt76_set_channel_candidates(mt);
 }
 
+static int xone_mt76_set_idle_time(struct xone_mt76 *mt)
+{
+	__le32 time = cpu_to_le32(64);
+
+	return xone_mt76_send_ms_command(mt, XONE_MT_SET_IDLE_TIME,
+					 &time, sizeof(time));
+}
+
 static int xone_mt76_init_address(struct xone_mt76 *mt)
 {
 	int err;
@@ -872,6 +881,10 @@ int xone_mt76_init_chip(struct xone_mt76 *mt)
 		return err;
 
 	err = xone_mt76_init_address(mt);
+	if (err)
+		return err;
+
+	err = xone_mt76_set_idle_time(mt);
 	if (err)
 		return err;
 
