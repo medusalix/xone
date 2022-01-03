@@ -1207,6 +1207,7 @@ static int gip_init_chunk_buffer(struct gip_client *client, int len)
 	if (buf) {
 		dev_err(&client->dev, "%s: already initialized\n", __func__);
 		kfree(buf);
+		client->chunk_buf = NULL;
 	}
 
 	buf = kzalloc(sizeof(*buf) + len, GFP_ATOMIC);
