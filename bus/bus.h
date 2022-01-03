@@ -108,13 +108,12 @@ struct gip_driver {
 
 	int (*probe)(struct gip_client *client);
 	void (*remove)(struct gip_client *client);
-	int (*suspend)(struct gip_client *client);
 };
 
 struct gip_adapter *gip_create_adapter(struct device *parent,
 				       struct gip_adapter_ops *ops,
 				       int audio_pkts);
-int gip_suspend_adapter(struct gip_adapter *adap);
+int gip_power_off_adapter(struct gip_adapter *adap);
 void gip_destroy_adapter(struct gip_adapter *adap);
 
 struct gip_client *gip_get_or_init_client(struct gip_adapter *adap, u8 id);

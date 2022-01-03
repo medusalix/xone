@@ -318,18 +318,6 @@ static void gip_gamepad_remove(struct gip_client *client)
 	dev_set_drvdata(&client->dev, NULL);
 }
 
-static int gip_gamepad_suspend(struct gip_client *client)
-{
-	int err;
-
-	err = gip_set_power_mode(client, GIP_PWR_OFF);
-	if (err)
-		dev_err(&client->dev, "%s: set power mode failed: %d\n",
-			__func__, err);
-
-	return err;
-}
-
 static struct gip_driver gip_gamepad_driver = {
 	.name = "xone-gip-gamepad",
 	.class = "Windows.Xbox.Input.Gamepad",
@@ -340,7 +328,6 @@ static struct gip_driver gip_gamepad_driver = {
 	},
 	.probe = gip_gamepad_probe,
 	.remove = gip_gamepad_remove,
-	.suspend = gip_gamepad_suspend,
 };
 module_gip_driver(gip_gamepad_driver);
 
