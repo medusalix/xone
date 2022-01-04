@@ -405,6 +405,7 @@ static int xone_dongle_process_wlan(struct xone_dongle *dongle,
 				    struct sk_buff *skb)
 {
 	struct mt76_rxwi *rxwi = (struct mt76_rxwi *)skb->data;
+	unsigned int hdrlen;
 	u32 ctl;
 
 	if (skb->len < sizeof(*rxwi))
@@ -414,8 +415,11 @@ static int xone_dongle_process_wlan(struct xone_dongle *dongle,
 
 	/* 2 bytes of padding after 802.11 header */
 	if (rxwi->rxinfo & cpu_to_le32(MT_RXINFO_L2PAD)) {
-		memmove(skb->data + 2, skb->data,
-			ieee80211_get_hdrlen_from_skb(skb));
+		hdrlen = ieee80211_get_hdrlen_from_skb(skb);
+		if (skb->len <= hdrlen + 2)
+			return -EINVAL;
+
+		memmove(skb->data + 2, skb->data, hdrlen);
 		skb_pull(skb, 2);
 	}
 
