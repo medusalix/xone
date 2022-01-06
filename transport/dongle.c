@@ -335,7 +335,7 @@ static int xone_dongle_handle_disassociation(struct xone_dongle *dongle,
 }
 
 static int xone_dongle_handle_reserved(struct xone_dongle *dongle,
-				       struct sk_buff *skb, u8 wcid, u8 *addr)
+				       struct sk_buff *skb, u8 *addr)
 {
 	int err;
 
@@ -345,8 +345,7 @@ static int xone_dongle_handle_reserved(struct xone_dongle *dongle,
 	if (skb->data[1] != 0x01)
 		return 0;
 
-	dev_dbg(dongle->mt.dev, "%s: wcid=%d, address=%pM\n",
-		__func__, wcid, addr);
+	dev_dbg(dongle->mt.dev, "%s: address=%pM\n", __func__, addr);
 
 	err = xone_mt76_pair_client(&dongle->mt, addr);
 	if (err)
@@ -394,8 +393,7 @@ static int xone_dongle_process_frame(struct xone_dongle *dongle,
 		return xone_dongle_handle_disassociation(dongle, wcid);
 	case IEEE80211_FTYPE_MGMT | XONE_MT_WLAN_RESERVED:
 		skb_pull(skb, sizeof(struct ieee80211_hdr_3addr));
-		return xone_dongle_handle_reserved(dongle, skb,
-						   wcid, hdr->addr2);
+		return xone_dongle_handle_reserved(dongle, skb, hdr->addr2);
 	}
 
 	return 0;
