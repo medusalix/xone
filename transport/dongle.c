@@ -372,27 +372,27 @@ static int xone_dongle_handle_loss(struct xone_dongle *dongle,
 }
 
 static int xone_dongle_process_frame(struct xone_dongle *dongle,
-				     struct sk_buff *skb, u8 wcid)
+				     struct sk_buff *skb,
+				     unsigned int hdr_len, u8 wcid)
 {
 	struct ieee80211_hdr_3addr *hdr =
 		(struct ieee80211_hdr_3addr *)skb->data;
 	u16 type;
 
-	if (skb->len < sizeof(*hdr))
+	if (skb->len < hdr_len || hdr_len < sizeof(*hdr))
 		return -EINVAL;
 
+	skb_pull(skb, hdr_len);
 	type = le16_to_cpu(hdr->frame_control);
 
 	switch (type & (IEEE80211_FCTL_FTYPE | IEEE80211_FCTL_STYPE)) {
 	case IEEE80211_FTYPE_DATA | IEEE80211_STYPE_QOS_DATA:
-		skb_pull(skb, sizeof(struct ieee80211_qos_hdr));
 		return xone_dongle_handle_qos_data(dongle, skb, wcid);
 	case IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_ASSOC_REQ:
 		return xone_dongle_handle_association(dongle, hdr->addr2);
 	case IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_DISASSOC:
 		return xone_dongle_handle_disassociation(dongle, wcid);
 	case IEEE80211_FTYPE_MGMT | XONE_MT_WLAN_RESERVED:
-		skb_pull(skb, sizeof(struct ieee80211_hdr_3addr));
 		return xone_dongle_handle_reserved(dongle, skb, hdr->addr2);
 	}
 
@@ -403,28 +403,28 @@ static int xone_dongle_process_wlan(struct xone_dongle *dongle,
 				    struct sk_buff *skb)
 {
 	struct mt76_rxwi *rxwi = (struct mt76_rxwi *)skb->data;
-	unsigned int hdrlen;
+	unsigned int hdr_len;
 	u32 ctl;
 
 	if (skb->len < sizeof(*rxwi))
 		return -EINVAL;
 
 	skb_pull(skb, sizeof(*rxwi));
+	hdr_len = ieee80211_get_hdrlen_from_skb(skb);
 
 	/* 2 bytes of padding after 802.11 header */
 	if (rxwi->rxinfo & cpu_to_le32(MT_RXINFO_L2PAD)) {
-		hdrlen = ieee80211_get_hdrlen_from_skb(skb);
-		if (skb->len <= hdrlen + 2)
+		if (skb->len < hdr_len + 2)
 			return -EINVAL;
 
-		memmove(skb->data + 2, skb->data, hdrlen);
+		memmove(skb->data + 2, skb->data, hdr_len);
 		skb_pull(skb, 2);
 	}
 
 	ctl = le32_to_cpu(rxwi->ctl);
 	skb_trim(skb, FIELD_GET(MT_RXWI_CTL_MPDU_LEN, ctl));
 
-	return xone_dongle_process_frame(dongle, skb,
+	return xone_dongle_process_frame(dongle, skb, hdr_len,
 					 FIELD_GET(MT_RXWI_CTL_WCID, ctl));
 }
 
