@@ -70,7 +70,7 @@ sudo ./install.sh --release
 
 **NOTE:** Please omit the `--release` flag when asked for your debug logs.
 
-3. Download the `xone` firmware:
+3. Download the firmware for the wireless dongle:
 
 ```
 sudo xone-get-firmware.sh
