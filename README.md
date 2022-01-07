@@ -2,11 +2,17 @@
 
 xone is a Linux kernel driver for Xbox One and Xbox Series X|S accessories. It serves as a modern replacement for `xpad`, aiming to be compatible with Microsoft's *Game Input Protocol* (GIP).
 If you are looking for a way to use your controller via Bluetooth, check out [xpadneo](https://github.com/atar-axis/xpadneo).
-Take a look at [this spreadsheet](https://docs.google.com/spreadsheets/d/1fVGtqHTo9PRdmFVgEjmWuJIjuYEE_OziktNifFZIEgg) for a comparison between all the different Linux drivers.
+
+## Compatibility
+
+Take a look at [this spreadsheet](https://docs.google.com/spreadsheets/d/1fVGtqHTo9PRdmFVgEjmWuJIjuYEE_OziktNifFZIEgg) for a comparison between all the different Linux drivers and the devices they support.
+
+**Wireless accessories using the Xbox Wireless dongle need to use the [experimental](https://github.com/medusalix/xone/tree/experimental) branch of `xone`**
 
 ## Important notes
 
 This driver is still in active development. Use at your own risk!
+If you are running `xow` upgrading to `xone` is *highly recommended*!
 **Any feedback including bug reports, suggestions or ideas is [*greatly appreciated*](https://discord.gg/FDQxwWk).**
 
 ## Features
@@ -49,27 +55,52 @@ Any issues regarding the packaging should be reported to the respective maintain
 - Linux (kernel 4.15+ and headers)
 - DKMS
 
-Clone the repository:
+### Guide
+
+1. Clone the repository:
 
 ```
 git clone https://github.com/medusalix/xone
 ```
 
-Install xone using the following command:
+2. Install `xone` using the following command:
 
 ```
+cd xone
 sudo ./install.sh --release
 ```
 
 **NOTE:** Please omit the `--release` flag when asked for your debug logs.
 
+3. Restart your computer
+4. Unplug your device (or dongle) and plug it back in
+5. Verify that `xone` is connected to your device by checking that the following command doesn't return any obvious errors from `xone` (look for "fail" or "error"):
+
+```
+sudo dmesg | tail -n 20
+```
+
+If everything succeeded, your device name and manufacturer should be listed in the output and you should be able to use your device! 🥳
+
 ### Updating
 
-Make sure to completely uninstall xone before updating:
+Make sure to completely uninstall `xone` before updating:
 
 ```
 sudo ./uninstall.sh
 ```
+
+## Troubleshooting
+
+### General Troubleshooting Steps
+
+In general, the following steps will help you figure out how to troubleshoot Xone:
+- Uninstall the release version and reinstall the debug version (omitting the `--release` flag from the install command) to give more descriptive errors
+```
+sudo ./install.sh
+```
+- Repeat steps 4 & 5 in the guide above (running `dmesg`) to gather error messages
+- Join the [Discord server](https://discord.gg/FDQxwWk) and ask questions from the community
 
 ## License
 
