@@ -61,7 +61,7 @@ Any issues regarding the packaging should be reported to the respective maintain
 git clone https://github.com/medusalix/xone
 ```
 
-2. Install xone using the following command:
+2. Install `xone` using the following command:
 
 ```
 cd xone
@@ -70,7 +70,7 @@ sudo ./install.sh --release
 
 **NOTE:** Please omit the `--release` flag when asked for your debug logs.
 
-3. Download the firmware for the wireless dongle:
+3. Download the `xone` firmware:
 
 ```
 sudo xone-get-firmware.sh
@@ -80,7 +80,7 @@ sudo xone-get-firmware.sh
 
 4. Restart your computer
 5. Unplug your device (or dongle) and plug it back in
-6. Verify that Xone is connected to your device by checking that the following command doesn't return any obvious errors from xone (look for "fail" or "error"):
+6. Verify that `xone` is connected to your device by checking that the following command doesn't return any obvious errors from `xone` (look for "fail" or "error"):
 
 ```
 sudo dmesg | tail -n 20
@@ -120,7 +120,7 @@ sudo ./uninstall.sh
 
 ### General Troubleshooting Steps
 
-In general, the following steps will help you figure out how to troubleshoot Xone:
+In general, the following steps will help you figure out how to troubleshoot `xone`:
 - Uninstall the release version and reinstall the debug version (omitting the `--release` flag from the install command) to give more descriptive errors
 ```
 sudo ./install.sh
