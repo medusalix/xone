@@ -10,6 +10,8 @@
 
 #include "common.h"
 
+#define GIP_GP_NAME "Microsoft X-Box One pad"
+
 /* vendor/product ID for the elite controller series 2 */
 #define GIP_GP_VID_MICROSOFT 0x045e
 #define GIP_GP_PID_ELITE2 0x0b00
@@ -73,7 +75,10 @@ struct gip_gamepad_pkt_rumble {
 } __packed;
 
 struct gip_gamepad {
-	struct gip_common common;
+	struct gip_client *client;
+	struct gip_battery battery;
+	struct gip_led led;
+	struct gip_input input;
 
 	bool series_xs;
 
@@ -92,12 +97,11 @@ static void gip_gamepad_send_rumble(struct timer_list *timer)
 	struct gip_gamepad_rumble *rumble = from_timer(rumble, timer, timer);
 	struct gip_gamepad *gamepad = container_of(rumble, typeof(*gamepad),
 						   rumble);
-	struct gip_client *client = gamepad->common.client;
 	unsigned long flags;
 
 	spin_lock_irqsave(&rumble->lock, flags);
 
-	gip_send_rumble(client, &rumble->pkt, sizeof(rumble->pkt));
+	gip_send_rumble(gamepad->client, &rumble->pkt, sizeof(rumble->pkt));
 	rumble->last = jiffies;
 
 	spin_unlock_irqrestore(&rumble->lock, flags);
@@ -153,11 +157,10 @@ static bool gip_gamepad_is_series_xs(struct gip_client *client)
 
 static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 {
-	struct gip_client *client = gamepad->common.client;
-	struct input_dev *dev = gamepad->common.input_dev;
+	struct input_dev *dev = gamepad->input.dev;
 	int err;
 
-	gamepad->series_xs = gip_gamepad_is_series_xs(client);
+	gamepad->series_xs = gip_gamepad_is_series_xs(gamepad->client);
 	if (gamepad->series_xs)
 		input_set_capability(dev, EV_KEY, KEY_RECORD);
 
@@ -185,14 +188,14 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 
 	err = input_ff_create_memless(dev, NULL, gip_gamepad_queue_rumble);
 	if (err) {
-		dev_err(&client->dev, "%s: create FF failed: %d\n",
+		dev_err(&gamepad->client->dev, "%s: create FF failed: %d\n",
 			__func__, err);
 		return err;
 	}
 
 	err = input_register_device(dev);
 	if (err) {
-		dev_err(&client->dev, "%s: register failed: %d\n",
+		dev_err(&gamepad->client->dev, "%s: register failed: %d\n",
 			__func__, err);
 		return err;
 	}
@@ -209,16 +212,17 @@ static int gip_gamepad_op_battery(struct gip_client *client,
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 
-	return gip_report_battery(&gamepad->common, type, level);
+	gip_report_battery(&gamepad->battery, type, level);
+
+	return 0;
 }
 
 static int gip_gamepad_op_guide_button(struct gip_client *client, bool pressed)
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
-	struct input_dev *dev = gamepad->common.input_dev;
 
-	input_report_key(dev, BTN_MODE, pressed);
-	input_sync(dev);
+	input_report_key(gamepad->input.dev, BTN_MODE, pressed);
+	input_sync(gamepad->input.dev);
 
 	return 0;
 }
@@ -226,9 +230,9 @@ static int gip_gamepad_op_guide_button(struct gip_client *client, bool pressed)
 static int gip_gamepad_op_input(struct gip_client *client, void *data, int len)
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
-	struct input_dev *dev = gamepad->common.input_dev;
 	struct gip_gamepad_pkt_input *pkt = data;
 	struct gip_gamepad_pkt_series_xs *pkt_xs = data + sizeof(*pkt);
+	struct input_dev *dev = gamepad->input.dev;
 	u16 buttons = le16_to_cpu(pkt->buttons);
 
 	if (len < sizeof(*pkt))
@@ -275,10 +279,9 @@ static int gip_gamepad_probe(struct gip_client *client)
 	if (!gamepad)
 		return -ENOMEM;
 
-	gamepad->common.client = client;
-	gamepad->common.name = "Microsoft X-Box One pad";
+	gamepad->client = client;
 
-	err = gip_init_input(&gamepad->common);
+	err = gip_init_input(&gamepad->input, client, GIP_GP_NAME);
 	if (err)
 		return err;
 
@@ -286,7 +289,7 @@ static int gip_gamepad_probe(struct gip_client *client)
 	if (err)
 		return err;
 
-	err = gip_init_battery(&gamepad->common);
+	err = gip_init_battery(&gamepad->battery, client, GIP_GP_NAME);
 	if (err)
 		return err;
 
@@ -294,7 +297,7 @@ static int gip_gamepad_probe(struct gip_client *client)
 	if (err)
 		return err;
 
-	err = gip_init_led(&gamepad->common);
+	err = gip_init_led(&gamepad->led, client);
 	if (err)
 		return err;
 
