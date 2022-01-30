@@ -24,6 +24,7 @@ struct gip_led {
 	struct led_classdev dev;
 
 	struct gip_client *client;
+	enum gip_led_mode mode;
 };
 
 struct gip_input {

@@ -4,6 +4,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/sysfs.h>
 
 #include "common.h"
 
@@ -110,11 +111,55 @@ static void gip_led_brightness_set(struct led_classdev *dev,
 
 	dev_dbg(&led->client->dev, "%s: brightness=%d\n", __func__, brightness);
 
-	err = gip_set_led_mode(led->client, GIP_LED_ON, brightness);
+	err = gip_set_led_mode(led->client, led->mode, brightness);
 	if (err)
 		dev_err(&led->client->dev, "%s: set LED mode failed: %d\n",
 			__func__, err);
 }
+
+static ssize_t gip_led_mode_show(struct device *dev,
+				 struct device_attribute *attr, char *buf)
+{
+	struct led_classdev *cdev = dev_get_drvdata(dev);
+	struct gip_led *led = container_of(cdev, typeof(*led), dev);
+
+	return sprintf(buf, "%u\n", led->mode);
+}
+
+static ssize_t gip_led_mode_store(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count)
+{
+	struct led_classdev *cdev = dev_get_drvdata(dev);
+	struct gip_led *led = container_of(cdev, typeof(*led), dev);
+	u8 mode;
+	int err;
+
+	err = kstrtou8(buf, 10, &mode);
+	if (err)
+		return err;
+
+	dev_dbg(&led->client->dev, "%s: mode=%u\n", __func__, mode);
+	led->mode = mode;
+
+	err = gip_set_led_mode(led->client, mode, cdev->brightness);
+	if (err) {
+		dev_err(&led->client->dev, "%s: set LED mode failed: %d\n",
+			__func__, err);
+		return err;
+	}
+
+	return count;
+}
+
+static struct device_attribute gip_led_attr_mode =
+	__ATTR(mode, 0644, gip_led_mode_show, gip_led_mode_store);
+
+static struct attribute *gip_led_attrs[] = {
+	&gip_led_attr_mode.attr,
+	NULL,
+};
+ATTRIBUTE_GROUPS(gip_led);
 
 int gip_init_led(struct gip_led *led, struct gip_client *client)
 {
@@ -137,8 +182,10 @@ int gip_init_led(struct gip_led *led, struct gip_client *client)
 	led->dev.brightness = GIP_LED_BRIGHTNESS_DEFAULT;
 	led->dev.max_brightness = GIP_LED_BRIGHTNESS_MAX;
 	led->dev.brightness_set = gip_led_brightness_set;
+	led->dev.groups = gip_led_groups;
 
 	led->client = client;
+	led->mode = GIP_LED_ON;
 
 	err = devm_led_classdev_register(&client->dev, &led->dev);
 	if (err)
