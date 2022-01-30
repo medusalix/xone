@@ -218,41 +218,35 @@ err_put_device:
 }
 EXPORT_SYMBOL_GPL(gip_create_adapter);
 
-void gip_remove_all_clients(struct gip_adapter *adap)
-{
-	int i;
-
-	for (i = GIP_MAX_CLIENTS - 1; i >= 0; i--) {
-		if (adap->clients[i]) {
-			gip_remove_client(adap->clients[i]);
-			adap->clients[i] = NULL;
-		}
-	}
-}
-
-int gip_suspend_adapter(struct gip_adapter *adap)
+int gip_power_off_adapter(struct gip_adapter *adap)
 {
 	struct gip_client *client = adap->clients[0];
-	int err = 0;
 
-	/* ensure all state changes have been processed */
-	flush_workqueue(adap->state_queue);
+	if (!client)
+		return 0;
 
-	/* suspend main client */
-	if (client && client->drv && client->drv->suspend)
-		err = client->drv->suspend(client);
-
-	gip_remove_all_clients(adap);
-
-	return err;
+	/* power off main client */
+	return gip_set_power_mode(client, GIP_PWR_OFF);
 }
-EXPORT_SYMBOL_GPL(gip_suspend_adapter);
+EXPORT_SYMBOL_GPL(gip_power_off_adapter);
 
 void gip_destroy_adapter(struct gip_adapter *adap)
 {
+	struct gip_client *client;
+	int i;
+
 	/* ensure all state changes have been processed */
 	flush_workqueue(adap->state_queue);
-	gip_remove_all_clients(adap);
+
+	for (i = GIP_MAX_CLIENTS - 1; i >= 0; i--) {
+		client = adap->clients[i];
+		if (!client)
+			continue;
+
+		gip_remove_client(client);
+		adap->clients[i] = NULL;
+	}
+
 	ida_simple_remove(&gip_adapter_ida, adap->id);
 	destroy_workqueue(adap->state_queue);
 
