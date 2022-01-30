@@ -19,7 +19,7 @@
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
 #define GIP_GP_RUMBLE_MAX 100
 
-static const guid_t gip_gamepad_guid_series_xs =
+static const guid_t gip_gamepad_guid_middle_button =
 	GUID_INIT(0xecddd2fe, 0xd387, 0x4294,
 		  0xbd, 0x96, 0x1a, 0x71, 0x2e, 0x3d, 0xc7, 0x7d);
 
@@ -141,14 +141,14 @@ static bool gip_gamepad_is_series_xs(struct gip_client *client)
 	guid_t *guid;
 	int i;
 
-	/* the elite controller also has the series X|S GUID */
+	/* the elite controller also has a middle button */
 	if (hw->vendor == GIP_GP_VID_MICROSOFT &&
 	    hw->product == GIP_GP_PID_ELITE2)
 		return false;
 
 	for (i = 0; i < client->interfaces->count; i++) {
 		guid = (guid_t *)client->interfaces->data + i;
-		if (guid_equal(guid, &gip_gamepad_guid_series_xs))
+		if (guid_equal(guid, &gip_gamepad_guid_middle_button))
 			return true;
 	}
 
