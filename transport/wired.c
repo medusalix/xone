@@ -47,7 +47,7 @@ struct xone_wired {
 	struct gip_adapter *adapter;
 };
 
-static void xone_wired_data_in_complete(struct urb *urb)
+static void xone_wired_complete_data_in(struct urb *urb)
 {
 	struct xone_wired *wired = urb->context;
 	struct device *dev = &wired->data_port.intf->dev;
@@ -64,12 +64,13 @@ static void xone_wired_data_in_complete(struct urb *urb)
 		goto resubmit;
 	}
 
-	if (urb->actual_length) {
-		err = gip_process_buffer(wired->adapter, urb->transfer_buffer,
-					 urb->actual_length);
-		if (err)
-			dev_err(dev, "%s: process failed: %d\n", __func__, err);
-	}
+	if (!urb->actual_length)
+		goto resubmit;
+
+	err = gip_process_buffer(wired->adapter, urb->transfer_buffer,
+				 urb->actual_length);
+	if (err)
+		dev_err(dev, "%s: process failed: %d\n", __func__, err);
 
 resubmit:
 	/* can fail during USB device removal */
@@ -78,7 +79,7 @@ resubmit:
 		dev_dbg(dev, "%s: submit failed: %d\n", __func__, err);
 }
 
-static void xone_wired_audio_in_complete(struct urb *urb)
+static void xone_wired_complete_audio_in(struct urb *urb)
 {
 	struct xone_wired *wired = urb->context;
 	struct device *dev = &wired->audio_port.intf->dev;
@@ -113,7 +114,7 @@ static void xone_wired_audio_in_complete(struct urb *urb)
 		dev_dbg(dev, "%s: submit failed: %d\n", __func__, err);
 }
 
-static void xone_wired_out_complete(struct urb *urb)
+static void xone_wired_complete_out(struct urb *urb)
 {
 	struct xone_wired_port *port = urb->context;
 
@@ -141,7 +142,7 @@ static int xone_wired_init_data_in(struct xone_wired *wired)
 			 usb_rcvintpipe(wired->udev,
 					port->ep_in->bEndpointAddress),
 			 buf, XONE_WIRED_LEN_DATA_PKT,
-			 xone_wired_data_in_complete, wired,
+			 xone_wired_complete_data_in, wired,
 			 port->ep_in->bInterval);
 	urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 
@@ -174,7 +175,7 @@ static int xone_wired_init_data_out(struct xone_wired *wired)
 				 usb_sndintpipe(wired->udev,
 						port->ep_out->bEndpointAddress),
 				 buf, XONE_WIRED_LEN_DATA_PKT,
-				 xone_wired_out_complete, port,
+				 xone_wired_complete_out, port,
 				 port->ep_out->bInterval);
 		urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 	}
@@ -293,7 +294,7 @@ static int xone_wired_init_audio_in(struct gip_adapter *adap)
 	urb->number_of_packets = XONE_WIRED_NUM_AUDIO_PKTS;
 	urb->interval = port->ep_in->bInterval;
 	urb->context = wired;
-	urb->complete = xone_wired_audio_in_complete;
+	urb->complete = xone_wired_complete_audio_in;
 
 	for (i = 0; i < XONE_WIRED_NUM_AUDIO_PKTS; i++) {
 		urb->iso_frame_desc[i].offset = i * len;
@@ -335,7 +336,7 @@ static int xone_wired_init_audio_out(struct gip_adapter *adap, int pkt_len)
 		urb->number_of_packets = XONE_WIRED_NUM_AUDIO_PKTS;
 		urb->interval = port->ep_out->bInterval;
 		urb->context = port;
-		urb->complete = xone_wired_out_complete;
+		urb->complete = xone_wired_complete_out;
 
 		for (j = 0; j < XONE_WIRED_NUM_AUDIO_PKTS; j++) {
 			urb->iso_frame_desc[j].offset = j * pkt_len;
@@ -351,7 +352,7 @@ static int xone_wired_disable_audio(struct gip_adapter *adap)
 	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
 	struct xone_wired_port *port = &wired->audio_port;
 
-	if (port->intf->cur_altsetting->desc.bAlternateSetting == 0)
+	if (!port->intf->cur_altsetting->desc.bAlternateSetting)
 		return -EALREADY;
 
 	usb_kill_urb(port->urb_in);
