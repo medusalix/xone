@@ -262,6 +262,7 @@ static int gip_headset_init_card(struct gip_headset *headset)
 
 static int gip_headset_init_pcm(struct gip_headset *headset)
 {
+	struct gip_client *client = headset->client;
 	struct snd_pcm *pcm;
 	int err;
 
@@ -270,14 +271,20 @@ static int gip_headset_init_pcm(struct gip_headset *headset)
 		return err;
 
 	strscpy(pcm->name, "GIP Headset", sizeof(pcm->name));
+	pcm->private_data = headset;
 
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &gip_headset_pcm_ops);
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &gip_headset_pcm_ops);
 
-	pcm->private_data = headset;
+	headset->buffer = devm_kzalloc(&client->dev,
+				       client->audio_config_out.buffer_size,
+				       GFP_KERNEL);
+	if (!headset->buffer)
+		return -ENOMEM;
+
 	headset->pcm = pcm;
 
-	return 0;
+	return snd_card_register(headset->card);
 }
 
 static int gip_headset_start_audio(struct gip_headset *headset)
@@ -293,12 +300,6 @@ static int gip_headset_start_audio(struct gip_headset *headset)
 	err = gip_init_audio_out(client);
 	if (err)
 		return err;
-
-	headset->buffer = devm_kzalloc(&client->dev,
-				       client->audio_config_out.buffer_size,
-				       GFP_KERNEL);
-	if (!headset->buffer)
-		return -ENOMEM;
 
 	hrtimer_start(&headset->timer, 0, HRTIMER_MODE_REL);
 
@@ -354,12 +355,6 @@ static void gip_headset_register(struct work_struct *work)
 	err = gip_headset_init_pcm(headset);
 	if (err) {
 		dev_err(dev, "%s: init PCM failed: %d\n", __func__, err);
-		goto err_free_card;
-	}
-
-	err = snd_card_register(headset->card);
-	if (err) {
-		dev_err(dev, "%s: register card failed: %d\n", __func__, err);
 		goto err_free_card;
 	}
 
