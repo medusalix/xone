@@ -21,8 +21,6 @@
 #define GIP_BATT_TYPE GENMASK(3, 2)
 #define GIP_STATUS_CONNECTED BIT(7)
 
-#define GIP_AUD_LENGTH_EXTRA GENMASK(3, 0)
-
 enum gip_command_internal {
 	GIP_CMD_ACKNOWLEDGE = 0x01,
 	GIP_CMD_ANNOUNCE = 0x02,
@@ -173,10 +171,6 @@ struct gip_pkt_serial_number {
 struct gip_pkt_audio_header {
 	u8 length_extra;
 	u8 unknown;
-} __packed;
-
-struct gip_pkt_audio_header_ext {
-	u8 unknown[2];
 } __packed;
 
 struct gip_command_descriptor {
@@ -1107,20 +1101,26 @@ static int gip_handle_pkt_audio_samples(struct gip_client *client,
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
-	/* extended audio headers are used by wireless clients */
+	/* wireless clients use extended audio headers */
 	if (hdr->length & GIP_HDR_EXTENDED) {
-		total |= (pkt->length_extra & GIP_AUD_LENGTH_EXTRA) << 7;
-		data += sizeof(struct gip_pkt_audio_header_ext);
-	}
+		total |= (pkt->length_extra & GENMASK(3, 0)) << 7;
+		if (total < sizeof(*pkt) + 2 || len < total)
+			return -EINVAL;
 
-	if (total < sizeof(*pkt) || len < total + sizeof(*pkt))
-		return -EINVAL;
+		data += sizeof(*pkt) + 2;
+		total -= sizeof(*pkt) + 2;
+	} else {
+		if (total < sizeof(*pkt) || len < total)
+			return -EINVAL;
+
+		data += sizeof(*pkt);
+		total -= sizeof(*pkt);
+	}
 
 	if (!client->drv || !client->drv->ops.audio_samples)
 		return 0;
 
-	return client->drv->ops.audio_samples(client, data + sizeof(*pkt),
-					      total - sizeof(*pkt));
+	return client->drv->ops.audio_samples(client, data, total);
 }
 
 static int gip_dispatch_pkt_internal(struct gip_client *client,
