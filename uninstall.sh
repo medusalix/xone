@@ -18,7 +18,7 @@ fi
 
 if [ -n "$version" ]; then
     echo "Uninstalling xone $version..."
-    dkms remove xone -v "$version" --all
+    dkms remove -m xone -v "$version" --all
     rm -r "/usr/src/xone-$version"
     rm -f /etc/modprobe.d/xone-blacklist.conf
 else
