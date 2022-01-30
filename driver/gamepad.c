@@ -217,11 +217,11 @@ static int gip_gamepad_op_battery(struct gip_client *client,
 	return 0;
 }
 
-static int gip_gamepad_op_guide_button(struct gip_client *client, bool pressed)
+static int gip_gamepad_op_guide_button(struct gip_client *client, bool down)
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 
-	input_report_key(gamepad->input.dev, BTN_MODE, pressed);
+	input_report_key(gamepad->input.dev, BTN_MODE, down);
 	input_sync(gamepad->input.dev);
 
 	return 0;

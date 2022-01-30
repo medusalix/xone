@@ -123,11 +123,11 @@ static int gip_chatpad_init_hid(struct gip_chatpad *chatpad)
 	return 0;
 }
 
-static int gip_chatpad_op_guide_button(struct gip_client *client, bool pressed)
+static int gip_chatpad_op_guide_button(struct gip_client *client, bool down)
 {
 	struct gip_chatpad *chatpad = dev_get_drvdata(&client->dev);
 
-	input_report_key(chatpad->input.dev, BTN_MODE, pressed);
+	input_report_key(chatpad->input.dev, BTN_MODE, down);
 	input_sync(chatpad->input.dev);
 
 	return 0;

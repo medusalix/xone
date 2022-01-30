@@ -91,7 +91,7 @@ struct gip_driver_ops {
 	int (*battery)(struct gip_client *client,
 		       enum gip_battery_type type,
 		       enum gip_battery_level level);
-	int (*guide_button)(struct gip_client *client, bool pressed);
+	int (*guide_button)(struct gip_client *client, bool down);
 	int (*audio_ready)(struct gip_client *client);
 	int (*audio_volume)(struct gip_client *client, int in, int out);
 	int (*hid_report)(struct gip_client *client, void *data, int len);

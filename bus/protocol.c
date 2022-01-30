@@ -21,6 +21,8 @@
 #define GIP_BATT_TYPE GENMASK(3, 2)
 #define GIP_STATUS_CONNECTED BIT(7)
 
+#define GIP_VKEY_LEFT_WIN 0x5b
+
 enum gip_command_internal {
 	GIP_CMD_ACKNOWLEDGE = 0x01,
 	GIP_CMD_ANNOUNCE = 0x02,
@@ -28,7 +30,7 @@ enum gip_command_internal {
 	GIP_CMD_IDENTIFY = 0x04,
 	GIP_CMD_POWER = 0x05,
 	GIP_CMD_AUTHENTICATE = 0x06,
-	GIP_CMD_GUIDE_BUTTON = 0x07,
+	GIP_CMD_VIRTUAL_KEY = 0x07,
 	GIP_CMD_AUDIO_CONTROL = 0x08,
 	GIP_CMD_LED = 0x0a,
 	GIP_CMD_HID_REPORT = 0x0b,
@@ -119,9 +121,9 @@ struct gip_pkt_authenticate {
 	u8 unknown2;
 } __packed;
 
-struct gip_pkt_guide_button {
-	u8 pressed;
-	u8 unknown;
+struct gip_pkt_virtual_key {
+	u8 down;
+	u8 key;
 } __packed;
 
 struct gip_pkt_audio_control {
@@ -927,19 +929,22 @@ err_free_info:
 	return err;
 }
 
-static int gip_handle_pkt_guide_button(struct gip_client *client,
-				       struct gip_header *hdr,
-				       void *data, int len)
+static int gip_handle_pkt_virtual_key(struct gip_client *client,
+				      struct gip_header *hdr,
+				      void *data, int len)
 {
-	struct gip_pkt_guide_button *pkt = data;
+	struct gip_pkt_virtual_key *pkt = data;
 
 	if (len != hdr->length || len != sizeof(*pkt))
+		return -EINVAL;
+
+	if (pkt->key != GIP_VKEY_LEFT_WIN)
 		return -EINVAL;
 
 	if (!client->drv || !client->drv->ops.guide_button)
 		return 0;
 
-	return client->drv->ops.guide_button(client, pkt->pressed);
+	return client->drv->ops.guide_button(client, pkt->down);
 }
 
 static int gip_handle_pkt_audio_format_chat(struct gip_client *client,
@@ -1134,8 +1139,8 @@ static int gip_dispatch_pkt_internal(struct gip_client *client,
 		return gip_handle_pkt_status(client, hdr, data, len);
 	case GIP_CMD_IDENTIFY:
 		return gip_handle_pkt_identify(client, hdr, data, len);
-	case GIP_CMD_GUIDE_BUTTON:
-		return gip_handle_pkt_guide_button(client, hdr, data, len);
+	case GIP_CMD_VIRTUAL_KEY:
+		return gip_handle_pkt_virtual_key(client, hdr, data, len);
 	case GIP_CMD_AUDIO_CONTROL:
 		return gip_handle_pkt_audio_control(client, hdr, data, len);
 	case GIP_CMD_HID_REPORT:
