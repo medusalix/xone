@@ -186,9 +186,9 @@ struct gip_command_descriptor {
 } __packed;
 
 struct gip_chunk {
-	int offset;
+	u16 offset;
 	void *data;
-	int length;
+	u8 length;
 };
 
 static int gip_send_pkt(struct gip_client *client,
@@ -1186,20 +1186,20 @@ static int gip_parse_chunk(struct gip_client *client,
 				(chunk_hdr->offset_extra & GENMASK(6, 0));
 
 	chunk->data = data + sizeof(*hdr) + sizeof(*chunk_hdr);
-	chunk->length = len - sizeof(*hdr) - sizeof(*chunk_hdr);
+	chunk->length = hdr->length & GIP_HDR_LENGTH;
 
-	if (chunk->length != (hdr->length & GIP_HDR_LENGTH)) {
+	if (len != chunk->length + sizeof(*hdr) + sizeof(*chunk_hdr)) {
 		dev_err(&client->dev, "%s: length mismatch\n", __func__);
 		return -EINVAL;
 	}
 
-	dev_dbg(&client->dev, "%s: offset=0x%02x, length=0x%02x\n",
+	dev_dbg(&client->dev, "%s: offset=0x%04x, length=0x%02x\n",
 		__func__, chunk->offset, chunk->length);
 
 	return 0;
 }
 
-static int gip_init_chunk_buffer(struct gip_client *client, int len)
+static int gip_init_chunk_buffer(struct gip_client *client, u16 len)
 {
 	struct gip_chunk_buffer *buf = client->chunk_buf;
 
@@ -1213,7 +1213,7 @@ static int gip_init_chunk_buffer(struct gip_client *client, int len)
 	if (!buf)
 		return -ENOMEM;
 
-	dev_dbg(&client->dev, "%s: length=0x%02x\n", __func__, len);
+	dev_dbg(&client->dev, "%s: length=0x%04x\n", __func__, len);
 	buf->length = len;
 	client->chunk_buf = buf;
 

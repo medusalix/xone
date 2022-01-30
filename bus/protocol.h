@@ -60,7 +60,7 @@ enum gip_led_mode {
 
 struct gip_chunk_buffer {
 	bool full;
-	int length;
+	u16 length;
 	u8 data[];
 };
 
