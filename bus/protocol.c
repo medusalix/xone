@@ -1127,9 +1127,6 @@ static int gip_dispatch_pkt_internal(struct gip_client *client,
 				     void *data, int len)
 {
 	switch (hdr->command) {
-	case GIP_CMD_ACKNOWLEDGE:
-		/* ignore acknowledgements */
-		return 0;
 	case GIP_CMD_ANNOUNCE:
 		return gip_handle_pkt_announce(client, hdr, data, len);
 	case GIP_CMD_STATUS:
@@ -1146,7 +1143,7 @@ static int gip_dispatch_pkt_internal(struct gip_client *client,
 		return gip_handle_pkt_audio_samples(client, hdr, data, len);
 	}
 
-	return -EPROTO;
+	return 0;
 }
 
 static int gip_dispatch_pkt(struct gip_client *client,
@@ -1161,7 +1158,7 @@ static int gip_dispatch_pkt(struct gip_client *client,
 		return gip_handle_pkt_input(client, hdr, data, len);
 	}
 
-	return -EPROTO;
+	return 0;
 }
 
 static int gip_parse_chunk(struct gip_client *client,
