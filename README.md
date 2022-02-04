@@ -35,11 +35,9 @@ If you are running `xow` upgrading to `xone` is *highly recommended*!
     - [x] Xbox One Stereo Headset (adapter or jack)
     - [ ] Xbox Wireless Headset
     - [ ] Third party wireless headsets (SteelSeries, Razer, etc.)
-- [ ] Racing wheels
+- [ ] Third party racing wheels (Thrustmaster, Logitech, etc.)
 - [x] Xbox One Chatpad
 - [x] Xbox Adaptive Controller
-- [ ] Mad Catz Rock Band 4 Wireless Stratocaster
-- [ ] Mad Catz Rock Band 4 Wireless Drum Kit
 
 ## Releases
 
