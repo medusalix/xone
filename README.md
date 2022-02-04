@@ -7,8 +7,6 @@ If you are looking for a way to use your controller via Bluetooth, check out [xp
 
 Take a look at [this spreadsheet](https://docs.google.com/spreadsheets/d/1fVGtqHTo9PRdmFVgEjmWuJIjuYEE_OziktNifFZIEgg) for a comparison between all the different Linux drivers and the devices they support.
 
-**Wireless accessories using the Xbox Wireless dongle need to use the [experimental](https://github.com/medusalix/xone/tree/experimental) branch of `xone`**
-
 ## Important notes
 
 This driver is still in active development. Use at your own risk!
