@@ -13,6 +13,7 @@ Take a look at [this spreadsheet](https://docs.google.com/spreadsheets/d/1fVGtqH
 
 This driver is still in active development. Use at your own risk!
 If you are running `xow` upgrading to `xone` is *highly recommended*!
+Always update your Xbox devices to the latest firmware version!
 **Any feedback including bug reports, suggestions or ideas is [*greatly appreciated*](https://discord.gg/FDQxwWk).**
 
 ## Features
