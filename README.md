@@ -89,15 +89,12 @@ sudo ./uninstall.sh
 
 ## Troubleshooting
 
-### General Troubleshooting Steps
+Uninstall the release version and install a debug build of `xone` (see installation guide).
+Run `sudo dmesg` to gather logs and check for any error messages related to `xone`.
 
-In general, the following steps will help you figure out how to troubleshoot Xone:
-- Uninstall the release version and reinstall the debug version (omitting the `--release` flag from the install command) to give more descriptive errors
-```
-sudo ./install.sh
-```
-- Repeat steps 4 & 5 in the guide above (running `dmesg`) to gather error messages
-- Join the [Discord server](https://discord.gg/FDQxwWk) and ask questions from the community
+### Other problems
+
+Please join the [Discord server](https://discord.gg/FDQxwWk) in case of any other problems.
 
 ## License
 
