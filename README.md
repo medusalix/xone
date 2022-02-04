@@ -1,7 +1,7 @@
 # xone [![Release Badge](https://img.shields.io/github/v/release/medusalix/xone?logo=github)](https://github.com/medusalix/xone/releases/latest) [![Discord Badge](https://img.shields.io/discord/733964971842732042?label=discord&logo=discord)](https://discord.gg/FDQxwWk) [![Donate Button](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/donate?hosted_button_id=BWUECKFDNY446)
 
-xone is a Linux kernel driver for Xbox One and Xbox Series X|S accessories. It serves as a modern replacement for `xpad`, aiming to be compatible with Microsoft's *Game Input Protocol* (GIP).
-If you are looking for a way to use your controller via Bluetooth, check out [xpadneo](https://github.com/atar-axis/xpadneo).
+`xone` is a Linux kernel driver for Xbox One and Xbox Series X|S accessories. It serves as a modern replacement for `xpad`, aiming to be compatible with Microsoft's *Game Input Protocol* (GIP).
+If you are looking for a way to use your controller via Bluetooth, check out [`xpadneo`](https://github.com/atar-axis/xpadneo).
 
 ## Compatibility
 
@@ -42,7 +42,7 @@ Always update your Xbox devices to the latest firmware version!
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/xone.svg)](https://repology.org/project/xone/versions)
 
-Feel free to package xone for any Linux distribution or hardware you like.
+Feel free to package `xone` for any Linux distribution or hardware you like.
 Any issues regarding the packaging should be reported to the respective maintainers.
 
 ## Installation
@@ -98,7 +98,7 @@ Please join the [Discord server](https://discord.gg/FDQxwWk) in case of any othe
 
 ## License
 
-xone is released under the [GNU General Public License, Version 2](LICENSE).
+`xone` is released under the [GNU General Public License, Version 2](LICENSE).
 
 ```
 Copyright (C) 2021 Severin von Wnuck
