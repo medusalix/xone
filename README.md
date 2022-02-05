@@ -54,13 +54,15 @@ Any issues regarding the packaging should be reported to the respective maintain
 
 ### Guide
 
-1. Clone the repository:
+1. Unplug your Xbox devices.
+
+2. Clone the repository:
 
 ```
 git clone https://github.com/medusalix/xone
 ```
 
-2. Install `xone` using the following command:
+3. Install `xone` using the following command:
 
 ```
 cd xone
@@ -69,15 +71,7 @@ sudo ./install.sh --release
 
 **NOTE:** Please omit the `--release` flag when asked for your debug logs.
 
-3. Restart your computer
-4. Unplug your device (or dongle) and plug it back in
-5. Verify that `xone` is connected to your device by checking that the following command doesn't return any obvious errors from `xone` (look for "fail" or "error"):
-
-```
-sudo dmesg | tail -n 20
-```
-
-If everything succeeded, your device name and manufacturer should be listed in the output and you should be able to use your device! 🥳
+4. Plug in your Xbox devices.
 
 ### Updating
 
