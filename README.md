@@ -87,6 +87,10 @@ Uninstall the release version and install a debug build of `xone` (see installat
 Run `sudo dmesg` to gather logs and check for any error messages related to `xone`.
 If `xone` is not being loaded automatically you might have to reboot your system.
 
+### Input issues
+
+You can use `evtest` to check if your input devices are working correctly.
+
 ### Other problems
 
 Please join the [Discord server](https://discord.gg/FDQxwWk) in case of any other problems.
