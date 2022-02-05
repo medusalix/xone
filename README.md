@@ -85,6 +85,7 @@ sudo ./uninstall.sh
 
 Uninstall the release version and install a debug build of `xone` (see installation guide).
 Run `sudo dmesg` to gather logs and check for any error messages related to `xone`.
+If `xone` is not being loaded automatically you might have to reboot your system.
 
 ### Other problems
 
