@@ -18,7 +18,7 @@ Always update your Xbox devices to the latest firmware version!
 
 - [x] Input and force feedback (rumble)
 - [x] Battery reporting (`UPower` integration)
-- [x] LED brightness control (using `/sys/class/leds`)
+- [x] LED control (using `/sys/class/leds`)
 - [x] Audio capture/playback (through `ALSA`)
 - [x] Power management (suspend/resume and remote wakeup)
 - [ ] Wireless connectivity (via dongle)
@@ -80,6 +80,20 @@ Make sure to completely uninstall `xone` before updating:
 ```
 sudo ./uninstall.sh
 ```
+
+## Kernel interface
+
+### LED control
+
+The guide button LED can be controlled via `sysfs`:
+
+```
+echo 2 | sudo tee /sys/class/leds/gip*/mode
+echo 5 | sudo tee /sys/class/leds/gip*/brightness
+```
+
+Replace the wildcard (`gip*`) if you want to control the LED of a specific device.
+The modes and the maximum brightness can vary from device to device.
 
 ## Troubleshooting
 
