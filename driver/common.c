@@ -122,7 +122,7 @@ static ssize_t gip_led_mode_show(struct device *dev,
 	struct led_classdev *cdev = dev_get_drvdata(dev);
 	struct gip_led *led = container_of(cdev, typeof(*led), dev);
 
-	return sprintf(buf, "%u\n", led->mode);
+	return sysfs_emit(buf, "%u\n", led->mode);
 }
 
 static ssize_t gip_led_mode_store(struct device *dev,
