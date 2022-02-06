@@ -220,7 +220,7 @@ static ssize_t xone_dongle_pairing_show(struct device *dev,
 	struct usb_interface *intf = to_usb_interface(dev);
 	struct xone_dongle *dongle = usb_get_intfdata(intf);
 
-	return sprintf(buf, "%d\n", dongle->pairing);
+	return sysfs_emit(buf, "%d\n", dongle->pairing);
 }
 
 static ssize_t xone_dongle_pairing_store(struct device *dev,
