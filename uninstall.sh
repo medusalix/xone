@@ -21,6 +21,7 @@ if [ -n "$version" ]; then
     dkms remove -m xone -v "$version" --all
     rm -r "/usr/src/xone-$version"
     rm -f /etc/modprobe.d/xone-blacklist.conf
+    rm -f /usr/local/bin/xone-get-firmware.sh
 else
     echo 'Driver is not installed!' >&2
 fi

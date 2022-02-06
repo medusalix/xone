@@ -20,8 +20,8 @@ Always update your Xbox devices to the latest firmware version!
 - [x] Battery reporting (`UPower` integration)
 - [x] LED control (using `/sys/class/leds`)
 - [x] Audio capture/playback (through `ALSA`)
-- [x] Power management (suspend/resume and remote wakeup)
-- [ ] Wireless connectivity (via dongle)
+- [x] Power management (suspend/resume and remote/wireless wakeup)
+- [x] Wired and wireless connectivity (via dongle)
 
 ## Supported devices
 
@@ -38,6 +38,8 @@ Always update your Xbox devices to the latest firmware version!
 - [x] Xbox One Chatpad
 - [x] Xbox Adaptive Controller
 
+⚠️ Standalone wireless headsets are currently not supported!
+
 ## Releases
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/xone.svg)](https://repology.org/project/xone/versions)
@@ -51,6 +53,8 @@ Any issues regarding the packaging should be reported to the respective maintain
 
 - Linux (kernel 4.15+ and headers)
 - DKMS
+- curl (for firmware download)
+- cabextract (for firmware extraction)
 
 ### Guide
 
@@ -71,7 +75,15 @@ sudo ./install.sh --release
 
 **NOTE:** Please omit the `--release` flag when asked for your debug logs.
 
-4. Plug in your Xbox devices.
+4. Download the firmware for the wireless dongle:
+
+```
+sudo xone-get-firmware.sh
+```
+
+**NOTE:** The `--skip-disclaimer` flag might be useful for scripting purposes.
+
+5. Plug in your Xbox devices.
 
 ### Updating
 
@@ -95,11 +107,30 @@ echo 5 | sudo tee /sys/class/leds/gip*/brightness
 Replace the wildcard (`gip*`) if you want to control the LED of a specific device.
 The modes and the maximum brightness can vary from device to device.
 
+### Pairing mode
+
+The pairing mode of the dongle can be queried via `sysfs`:
+
+```
+cat /sys/bus/usb/drivers/xone-dongle/*/pairing
+```
+
+You can enable (`1`) or disable (`0`) the pairing using the following command:
+
+```
+echo 1 | sudo tee /sys/bus/usb/drivers/xone-dongle/*/pairing
+```
+
 ## Troubleshooting
 
 Uninstall the release version and install a debug build of `xone` (see installation guide).
 Run `sudo dmesg` to gather logs and check for any error messages related to `xone`.
 If `xone` is not being loaded automatically you might have to reboot your system.
+
+### Error messages
+
+- `Direct firmware load for xow_dongle.bin failed with error -2`
+    - Download the firmware for the wireless dongle (see installation guide).
 
 ### Input issues
 

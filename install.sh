@@ -17,6 +17,11 @@ if [ -n "$(dkms status xone)" ]; then
     exit 1
 fi
 
+if [ -f /usr/local/bin/xow ]; then
+    echo 'Please uninstall xow!' >&2
+    exit 1
+fi
+
 version=$(git describe --tags 2> /dev/null || echo unknown)
 source="/usr/src/xone-$version"
 log="/var/lib/dkms/xone/$version/build/make.log"
@@ -32,10 +37,16 @@ fi
 if dkms install -m xone -v "$version"; then
     # The blacklist should be placed in /usr/local/lib/modprobe.d for kmod 29+
     install -D -m 644 install/modprobe.conf /etc/modprobe.d/xone-blacklist.conf
+    install -D -m 755 install/firmware.sh /usr/local/bin/xone-get-firmware.sh
 
     # Avoid conflicts between xpad and xone
     if lsmod | grep -q '^xpad'; then
         modprobe -r xpad
+    fi
+
+    # Avoid conflicts between mt76x2u and xone
+    if lsmod | grep -q '^mt76x2u'; then
+        modprobe -r mt76x2u
     fi
 else
     if [ -r "$log" ]; then
