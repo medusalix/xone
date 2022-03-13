@@ -532,11 +532,8 @@ static int xone_dongle_process_frame(struct xone_dongle *dongle,
 		(struct ieee80211_hdr_3addr *)skb->data;
 	u16 type;
 
-	if (skb->len < hdr_len)
-		return -EINVAL;
-
-	/* ignore other frames */
-	if (hdr_len < sizeof(*hdr))
+	/* ignore invalid frames */
+	if (skb->len < hdr_len || hdr_len < sizeof(*hdr))
 		return 0;
 
 	skb_pull(skb, hdr_len);
