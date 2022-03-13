@@ -134,7 +134,7 @@ If `xone` is not being loaded automatically you might have to reboot your system
 
 ### Input issues
 
-You can use `evtest` to check if your input devices are working correctly.
+You can use `evtest` and `fftest` to check the input and force feedback functionality of your devices.
 
 ### Other problems
 
