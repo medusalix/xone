@@ -140,6 +140,7 @@ static int gip_gamepad_init_rumble(struct gip_gamepad *gamepad)
 
 	spin_lock_init(&rumble->lock);
 	timer_setup(&rumble->timer, gip_gamepad_send_rumble, 0);
+	rumble->last = jiffies;
 
 	return input_ff_create_memless(gamepad->input.dev, NULL,
 				       gip_gamepad_queue_rumble);
