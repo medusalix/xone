@@ -85,7 +85,6 @@ struct gip_gamepad {
 	struct gip_gamepad_rumble {
 		/* serializes access to rumble packet */
 		spinlock_t lock;
-		bool queued;
 		unsigned long last;
 		struct timer_list timer;
 		struct gip_gamepad_pkt_rumble pkt;
