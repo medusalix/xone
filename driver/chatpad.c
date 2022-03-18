@@ -157,6 +157,10 @@ static int gip_chatpad_probe(struct gip_client *client)
 
 	chatpad->client = client;
 
+	err = gip_set_power_mode(client, GIP_PWR_ON);
+	if (err)
+		return err;
+
 	err = gip_init_input(&chatpad->input, client, GIP_CP_NAME);
 	if (err)
 		return err;
@@ -166,10 +170,6 @@ static int gip_chatpad_probe(struct gip_client *client)
 		return err;
 
 	err = gip_chatpad_init_hid(chatpad);
-	if (err)
-		return err;
-
-	err = gip_set_power_mode(client, GIP_PWR_ON);
 	if (err)
 		return err;
 
