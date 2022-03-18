@@ -134,6 +134,17 @@ static int gip_gamepad_queue_rumble(struct input_dev *dev, void *data,
 	return 0;
 }
 
+static int gip_gamepad_init_rumble(struct gip_gamepad *gamepad)
+{
+	struct gip_gamepad_rumble *rumble = &gamepad->rumble;
+
+	spin_lock_init(&rumble->lock);
+	timer_setup(&rumble->timer, gip_gamepad_send_rumble, 0);
+
+	return input_ff_create_memless(gamepad->input.dev, NULL,
+				       gip_gamepad_queue_rumble);
+}
+
 static bool gip_gamepad_is_series_xs(struct gip_client *client)
 {
 	struct gip_hardware *hw = &client->hardware;
@@ -185,24 +196,26 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 	input_set_abs_params(dev, ABS_HAT0Y, -1, 1, 0, 0);
 	input_set_drvdata(dev, &gamepad->rumble);
 
-	err = input_ff_create_memless(dev, NULL, gip_gamepad_queue_rumble);
+	err = gip_gamepad_init_rumble(gamepad);
 	if (err) {
-		dev_err(&gamepad->client->dev, "%s: create FF failed: %d\n",
+		dev_err(&gamepad->client->dev, "%s: init rumble failed: %d\n",
 			__func__, err);
-		return err;
+		goto err_delete_timer;
 	}
 
 	err = input_register_device(dev);
 	if (err) {
 		dev_err(&gamepad->client->dev, "%s: register failed: %d\n",
 			__func__, err);
-		return err;
+		goto err_delete_timer;
 	}
 
-	spin_lock_init(&gamepad->rumble.lock);
-	timer_setup(&gamepad->rumble.timer, gip_gamepad_send_rumble, 0);
-
 	return 0;
+
+err_delete_timer:
+	del_timer_sync(&gamepad->rumble.timer);
+
+	return err;
 }
 
 static int gip_gamepad_op_battery(struct gip_client *client,
