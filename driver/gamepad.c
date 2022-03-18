@@ -293,19 +293,11 @@ static int gip_gamepad_probe(struct gip_client *client)
 
 	gamepad->client = client;
 
-	err = gip_init_input(&gamepad->input, client, GIP_GP_NAME);
-	if (err)
-		return err;
-
-	err = gip_gamepad_init_input(gamepad);
+	err = gip_set_power_mode(client, GIP_PWR_ON);
 	if (err)
 		return err;
 
 	err = gip_init_battery(&gamepad->battery, client, GIP_GP_NAME);
-	if (err)
-		return err;
-
-	err = gip_set_power_mode(client, GIP_PWR_ON);
 	if (err)
 		return err;
 
@@ -314,6 +306,14 @@ static int gip_gamepad_probe(struct gip_client *client)
 		return err;
 
 	err = gip_complete_authentication(client);
+	if (err)
+		return err;
+
+	err = gip_init_input(&gamepad->input, client, GIP_GP_NAME);
+	if (err)
+		return err;
+
+	err = gip_gamepad_init_input(gamepad);
 	if (err)
 		return err;
 
