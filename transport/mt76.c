@@ -954,7 +954,13 @@ int xone_mt76_suspend_radio(struct xone_mt76 *mt)
 	if (err)
 		return err;
 
-	return xone_mt76_set_wow_traffic(mt, XONE_MT_WOW_TO_HOST);
+	err = xone_mt76_set_wow_traffic(mt, XONE_MT_WOW_TO_HOST);
+	if (err)
+		return err;
+
+	dev_dbg(mt->dev, "%s: suspended\n", __func__);
+
+	return 0;
 }
 
 int xone_mt76_resume_radio(struct xone_mt76 *mt)
@@ -981,6 +987,8 @@ int xone_mt76_resume_radio(struct xone_mt76 *mt)
 	xone_mt76_write_register(mt, MT_MAC_SYS_CTRL,
 				 MT_MAC_SYS_CTRL_ENABLE_RX |
 				 MT_MAC_SYS_CTRL_ENABLE_TX);
+
+	dev_dbg(mt->dev, "%s: resumed\n", __func__);
 
 	return 0;
 }
