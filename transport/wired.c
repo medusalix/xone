@@ -463,9 +463,6 @@ static int xone_wired_probe(struct usb_interface *intf,
 	/* newer devices require a reset after system sleep */
 	usb_reset_device(wired->udev);
 
-	/* enable USB remote wakeup feature */
-	device_wakeup_enable(&wired->udev->dev);
-
 	err = xone_wired_init_data_port(wired, intf);
 	if (err)
 		return err;
@@ -490,6 +487,9 @@ static int xone_wired_probe(struct usb_interface *intf,
 		goto err_free_urbs;
 
 	usb_set_intfdata(intf, wired);
+
+	/* enable USB remote wakeup */
+	device_wakeup_enable(&wired->udev->dev);
 
 	return 0;
 

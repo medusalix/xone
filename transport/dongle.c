@@ -875,9 +875,6 @@ static int xone_dongle_probe(struct usb_interface *intf,
 
 	usb_reset_device(dongle->mt.udev);
 
-	/* enable USB remote wakeup feature */
-	device_wakeup_enable(&dongle->mt.udev->dev);
-
 	dongle->event_wq = alloc_ordered_workqueue("xone_dongle", 0);
 	if (!dongle->event_wq)
 		return -ENOMEM;
@@ -887,16 +884,22 @@ static int xone_dongle_probe(struct usb_interface *intf,
 	init_waitqueue_head(&dongle->disconnect_wait);
 
 	err = xone_dongle_init(dongle);
-	if (err) {
-		xone_dongle_destroy(dongle);
-		return err;
-	}
+	if (err)
+		goto err_destroy_dongle;
 
 	usb_set_intfdata(intf, dongle);
 
 	err = device_add_groups(&intf->dev, xone_dongle_groups);
 	if (err)
-		xone_dongle_destroy(dongle);
+		goto err_destroy_dongle;
+
+	/* enable USB remote wakeup */
+	device_wakeup_enable(&dongle->mt.udev->dev);
+
+	return 0;
+
+err_destroy_dongle:
+	xone_dongle_destroy(dongle);
 
 	return err;
 }
