@@ -22,6 +22,9 @@
 
 #define XONE_DONGLE_MAX_CLIENTS 16
 
+/* autosuspend delay in ms */
+#define XONE_DONGLE_SUSPEND_DELAY 60000
+
 #define XONE_DONGLE_PWR_OFF_TIMEOUT msecs_to_jiffies(5000)
 
 enum xone_dongle_queue {
@@ -187,6 +190,7 @@ static struct gip_adapter_ops xone_dongle_adapter_ops = {
 
 static int xone_dongle_toggle_pairing(struct xone_dongle *dongle, bool enable)
 {
+	struct usb_interface *intf = to_usb_interface(dongle->mt.dev);
 	enum xone_mt76_led_mode led;
 	int err = 0;
 
@@ -210,6 +214,11 @@ static int xone_dongle_toggle_pairing(struct xone_dongle *dongle, bool enable)
 	err = xone_mt76_set_led_mode(&dongle->mt, led);
 	if (err)
 		goto err_unlock;
+
+	if (enable)
+		usb_autopm_get_interface(intf);
+	else
+		usb_autopm_put_interface(intf);
 
 	dev_dbg(dongle->mt.dev, "%s: enabled=%d\n", __func__, enable);
 	dongle->pairing = enable;
@@ -324,6 +333,7 @@ static int xone_dongle_add_client(struct xone_dongle *dongle, u8 *addr)
 	spin_unlock_irqrestore(&dongle->clients_lock, flags);
 
 	atomic_inc(&dongle->client_count);
+	usb_autopm_get_interface(to_usb_interface(dongle->mt.dev));
 
 	return 0;
 
@@ -364,6 +374,7 @@ static int xone_dongle_remove_client(struct xone_dongle *dongle, u8 wcid)
 		err = xone_mt76_set_led_mode(&dongle->mt, XONE_MT_LED_OFF);
 
 	wake_up(&dongle->disconnect_wait);
+	usb_autopm_put_interface(to_usb_interface(dongle->mt.dev));
 
 	return err;
 }
@@ -893,8 +904,12 @@ static int xone_dongle_probe(struct usb_interface *intf,
 	if (err)
 		goto err_destroy_dongle;
 
-	/* enable USB remote wakeup */
+	/* enable USB remote wakeup and autosuspend */
+	intf->needs_remote_wakeup = true;
 	device_wakeup_enable(&dongle->mt.udev->dev);
+	pm_runtime_set_autosuspend_delay(&dongle->mt.udev->dev,
+					 XONE_DONGLE_SUSPEND_DELAY);
+	usb_enable_autosuspend(dongle->mt.udev);
 
 	return 0;
 
@@ -984,6 +999,7 @@ static struct usb_driver xone_dongle_driver = {
 	.resume = xone_dongle_resume,
 	.id_table = xone_dongle_id_table,
 	.drvwrap.driver.shutdown = xone_dongle_shutdown,
+	.supports_autosuspend = true,
 	.disable_hub_initiated_lpm = true,
 	.soft_unbind = true,
 };
