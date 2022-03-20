@@ -187,20 +187,27 @@ static struct gip_adapter_ops xone_dongle_adapter_ops = {
 
 static int xone_dongle_toggle_pairing(struct xone_dongle *dongle, bool enable)
 {
+	enum xone_mt76_led_mode led;
 	int err = 0;
 
 	mutex_lock(&dongle->pairing_lock);
 
 	/* pairing is already enabled */
-	if (dongle->pairing && enable)
+	if (dongle->pairing == enable)
 		goto err_unlock;
 
 	err = xone_mt76_set_pairing(&dongle->mt, enable);
 	if (err)
 		goto err_unlock;
 
-	err = xone_mt76_set_led_mode(&dongle->mt, enable ? XONE_MT_LED_BLINK :
-						  XONE_MT_LED_OFF);
+	if (enable)
+		led = XONE_MT_LED_BLINK;
+	else if (atomic_read(&dongle->client_count))
+		led = XONE_MT_LED_ON;
+	else
+		led = XONE_MT_LED_OFF;
+
+	err = xone_mt76_set_led_mode(&dongle->mt, led);
 	if (err)
 		goto err_unlock;
 
@@ -303,9 +310,11 @@ static int xone_dongle_add_client(struct xone_dongle *dongle, u8 *addr)
 	if (err)
 		goto err_free_client;
 
-	err = xone_mt76_set_led_mode(&dongle->mt, XONE_MT_LED_ON);
-	if (err)
-		goto err_free_client;
+	if (!dongle->pairing) {
+		err = xone_mt76_set_led_mode(&dongle->mt, XONE_MT_LED_ON);
+		if (err)
+			goto err_free_client;
+	}
 
 	dev_dbg(dongle->mt.dev, "%s: wcid=%d, address=%pM\n",
 		__func__, client->wcid, addr);
@@ -351,10 +360,9 @@ static int xone_dongle_remove_client(struct xone_dongle *dongle, u8 wcid)
 			__func__, err);
 
 	/* turn off LED if all clients have disconnected */
-	if (atomic_read(&dongle->client_count) == 1)
+	if (atomic_dec_and_test(&dongle->client_count) && !dongle->pairing)
 		err = xone_mt76_set_led_mode(&dongle->mt, XONE_MT_LED_OFF);
 
-	atomic_dec(&dongle->client_count);
 	wake_up(&dongle->disconnect_wait);
 
 	return err;
