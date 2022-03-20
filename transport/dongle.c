@@ -981,8 +981,8 @@ static struct usb_driver xone_dongle_driver = {
 	.resume = xone_dongle_resume,
 	.id_table = xone_dongle_id_table,
 	.drvwrap.driver.shutdown = xone_dongle_shutdown,
-	.soft_unbind = 1,
-	.disable_hub_initiated_lpm = 1,
+	.disable_hub_initiated_lpm = true,
+	.soft_unbind = true,
 };
 
 module_usb_driver(xone_dongle_driver);
