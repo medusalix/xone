@@ -32,7 +32,7 @@ struct xone_wired {
 	struct usb_device *udev;
 
 	struct xone_wired_port {
-		struct usb_interface *intf;
+		struct device *dev;
 
 		struct usb_endpoint_descriptor *ep_in;
 		struct usb_endpoint_descriptor *ep_out;
@@ -50,7 +50,7 @@ struct xone_wired {
 static void xone_wired_complete_data_in(struct urb *urb)
 {
 	struct xone_wired *wired = urb->context;
-	struct device *dev = &wired->data_port.intf->dev;
+	struct device *dev = wired->data_port.dev;
 	int err;
 
 	switch (urb->status) {
@@ -82,7 +82,7 @@ resubmit:
 static void xone_wired_complete_audio_in(struct urb *urb)
 {
 	struct xone_wired *wired = urb->context;
-	struct device *dev = &wired->audio_port.intf->dev;
+	struct device *dev = wired->audio_port.dev;
 	struct usb_iso_packet_descriptor *desc;
 	int i, err;
 
@@ -258,9 +258,9 @@ static int xone_wired_submit_buffer(struct gip_adapter *adap,
 static int xone_wired_enable_audio(struct gip_adapter *adap)
 {
 	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
-	struct xone_wired_port *port = &wired->audio_port;
+	struct usb_interface *intf = to_usb_interface(wired->audio_port.dev);
 
-	if (port->intf->cur_altsetting->desc.bAlternateSetting == 1)
+	if (intf->cur_altsetting->desc.bAlternateSetting == 1)
 		return -EALREADY;
 
 	return usb_set_interface(wired->udev, XONE_WIRED_INTF_AUDIO, 1);
@@ -351,8 +351,9 @@ static int xone_wired_disable_audio(struct gip_adapter *adap)
 {
 	struct xone_wired *wired = dev_get_drvdata(&adap->dev);
 	struct xone_wired_port *port = &wired->audio_port;
+	struct usb_interface *intf = to_usb_interface(port->dev);
 
-	if (!port->intf->cur_altsetting->desc.bAlternateSetting)
+	if (!intf->cur_altsetting->desc.bAlternateSetting)
 		return -EALREADY;
 
 	usb_kill_urb(port->urb_in);
@@ -405,7 +406,7 @@ static int xone_wired_init_data_port(struct xone_wired *wired,
 	if (err)
 		return err;
 
-	port->intf = intf;
+	port->dev = &intf->dev;
 	init_usb_anchor(&port->urbs_out_idle);
 	init_usb_anchor(&port->urbs_out_busy);
 
@@ -441,7 +442,7 @@ static int xone_wired_init_audio_port(struct xone_wired *wired)
 	if (err)
 		return err;
 
-	port->intf = intf;
+	port->dev = &intf->dev;
 	init_usb_anchor(&port->urbs_out_idle);
 	init_usb_anchor(&port->urbs_out_busy);
 
