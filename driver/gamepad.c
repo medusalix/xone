@@ -137,13 +137,16 @@ static int gip_gamepad_queue_rumble(struct input_dev *dev, void *data,
 static int gip_gamepad_init_rumble(struct gip_gamepad *gamepad)
 {
 	struct gip_gamepad_rumble *rumble = &gamepad->rumble;
+	struct input_dev *dev = gamepad->input.dev;
 
 	spin_lock_init(&rumble->lock);
 	timer_setup(&rumble->timer, gip_gamepad_send_rumble, 0);
 	rumble->last = jiffies;
 
-	return input_ff_create_memless(gamepad->input.dev, NULL,
-				       gip_gamepad_queue_rumble);
+	input_set_capability(dev, EV_FF, FF_RUMBLE);
+	input_set_drvdata(dev, rumble);
+
+	return input_ff_create_memless(dev, NULL, gip_gamepad_queue_rumble);
 }
 
 static bool gip_gamepad_is_series_xs(struct gip_client *client)
@@ -186,7 +189,6 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 	input_set_capability(dev, EV_KEY, BTN_TR);
 	input_set_capability(dev, EV_KEY, BTN_THUMBL);
 	input_set_capability(dev, EV_KEY, BTN_THUMBR);
-	input_set_capability(dev, EV_FF, FF_RUMBLE);
 	input_set_abs_params(dev, ABS_X, -32768, 32767, 16, 128);
 	input_set_abs_params(dev, ABS_RX, -32768, 32767, 16, 128);
 	input_set_abs_params(dev, ABS_Y, -32768, 32767, 16, 128);
@@ -195,7 +197,6 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 	input_set_abs_params(dev, ABS_RZ, 0, 1023, 0, 0);
 	input_set_abs_params(dev, ABS_HAT0X, -1, 1, 0, 0);
 	input_set_abs_params(dev, ABS_HAT0Y, -1, 1, 0, 0);
-	input_set_drvdata(dev, &gamepad->rumble);
 
 	err = gip_gamepad_init_rumble(gamepad);
 	if (err) {
