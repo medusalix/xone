@@ -69,8 +69,13 @@ static void xone_wired_complete_data_in(struct urb *urb)
 
 	err = gip_process_buffer(wired->adapter, urb->transfer_buffer,
 				 urb->actual_length);
-	if (err)
+	if (err) {
 		dev_err(dev, "%s: process failed: %d\n", __func__, err);
+		print_hex_dump_debug("xone-wired packet: ",
+				     DUMP_PREFIX_NONE, 16, 1,
+				     urb->transfer_buffer, urb->actual_length,
+				     false);
+	}
 
 resubmit:
 	/* can fail during USB device removal */
