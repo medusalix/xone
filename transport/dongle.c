@@ -143,7 +143,7 @@ static int xone_dongle_get_buffer(struct gip_adapter *adap,
 
 	buf->context = skb;
 	buf->data = skb->data;
-	buf->length = skb->len;
+	buf->length = skb_tailroom(skb);
 
 	return 0;
 }
