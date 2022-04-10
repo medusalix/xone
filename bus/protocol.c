@@ -266,7 +266,7 @@ static void gip_encode_header(struct gip_header *hdr, u8 *buf)
 		gip_encode_varint(buf + hdr_len, hdr->chunk_offset);
 }
 
-static void gip_decode_header(struct gip_header *hdr, u8 *data, int len)
+static int gip_decode_header(struct gip_header *hdr, u8 *data, int len)
 {
 	int hdr_len = 0;
 
@@ -280,8 +280,10 @@ static void gip_decode_header(struct gip_header *hdr, u8 *data, int len)
 				     &hdr->packet_length);
 
 	if (hdr->options & GIP_OPT_CHUNK)
-		gip_decode_varint(data + hdr_len, len - hdr_len,
-				  &hdr->chunk_offset);
+		hdr_len += gip_decode_varint(data + hdr_len, len - hdr_len,
+					     &hdr->chunk_offset);
+
+	return hdr_len;
 }
 
 static int gip_send_pkt(struct gip_client *client,
@@ -1327,9 +1329,7 @@ int gip_process_buffer(struct gip_adapter *adap, void *data, int len)
 	int hdr_len, err;
 
 	while (len > GIP_HDR_MIN_LENGTH) {
-		gip_decode_header(&hdr, data, len);
-
-		hdr_len = gip_calc_header_length(&hdr);
+		hdr_len = gip_decode_header(&hdr, data, len);
 		if (len < hdr_len + hdr.packet_length)
 			return -EINVAL;
 
