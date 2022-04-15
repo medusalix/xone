@@ -144,7 +144,8 @@ static void gip_bus_remove(struct device *dev)
 	client->drv = NULL;
 	spin_unlock_irqrestore(&client->lock, flags);
 
-	drv->remove(client);
+	if (drv->remove)
+		drv->remove(client);
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
