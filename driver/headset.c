@@ -474,8 +474,6 @@ static void gip_headset_remove(struct gip_client *client)
 		snd_card_disconnect(headset->card);
 		snd_card_free_when_closed(headset->card);
 	}
-
-	dev_set_drvdata(&client->dev, NULL);
 }
 
 static struct gip_driver gip_headset_driver = {

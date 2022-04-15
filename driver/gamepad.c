@@ -329,7 +329,6 @@ static void gip_gamepad_remove(struct gip_client *client)
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 
 	del_timer_sync(&gamepad->rumble.timer);
-	dev_set_drvdata(&client->dev, NULL);
 }
 
 static struct gip_driver gip_gamepad_driver = {

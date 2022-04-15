@@ -183,7 +183,6 @@ static void gip_chatpad_remove(struct gip_client *client)
 	struct gip_chatpad *chatpad = dev_get_drvdata(&client->dev);
 
 	hid_destroy_device(chatpad->hid_dev);
-	dev_set_drvdata(&client->dev, NULL);
 }
 
 static struct gip_driver gip_chatpad_driver = {
