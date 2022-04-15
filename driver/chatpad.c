@@ -134,7 +134,7 @@ static int gip_chatpad_op_guide_button(struct gip_client *client, bool down)
 }
 
 static int gip_chatpad_op_hid_report(struct gip_client *client,
-				     void *data, int len)
+				     void *data, u32 len)
 {
 	struct gip_chatpad *chatpad = dev_get_drvdata(&client->dev);
 

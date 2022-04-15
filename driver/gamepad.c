@@ -241,7 +241,7 @@ static int gip_gamepad_op_guide_button(struct gip_client *client, bool down)
 	return 0;
 }
 
-static int gip_gamepad_op_input(struct gip_client *client, void *data, int len)
+static int gip_gamepad_op_input(struct gip_client *client, void *data, u32 len)
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 	struct gip_gamepad_pkt_input *pkt = data;

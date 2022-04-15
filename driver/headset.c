@@ -381,7 +381,7 @@ static int gip_headset_op_audio_ready(struct gip_client *client)
 }
 
 static int gip_headset_op_audio_volume(struct gip_client *client,
-				       int in, int out)
+				       u8 in, u8 out)
 {
 	struct gip_headset *headset = dev_get_drvdata(&client->dev);
 
@@ -396,7 +396,7 @@ static int gip_headset_op_audio_volume(struct gip_client *client,
 }
 
 static int gip_headset_op_audio_samples(struct gip_client *client,
-					void *data, int len)
+					void *data, u32 len)
 {
 	struct gip_headset *headset = dev_get_drvdata(&client->dev);
 	struct gip_headset_stream *stream = &headset->capture;

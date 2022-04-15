@@ -93,10 +93,10 @@ struct gip_driver_ops {
 		       enum gip_battery_level level);
 	int (*guide_button)(struct gip_client *client, bool down);
 	int (*audio_ready)(struct gip_client *client);
-	int (*audio_volume)(struct gip_client *client, int in, int out);
-	int (*hid_report)(struct gip_client *client, void *data, int len);
-	int (*input)(struct gip_client *client, void *data, int len);
-	int (*audio_samples)(struct gip_client *client, void *data, int len);
+	int (*audio_volume)(struct gip_client *client, u8 in, u8 out);
+	int (*hid_report)(struct gip_client *client, void *data, u32 len);
+	int (*input)(struct gip_client *client, void *data, u32 len);
+	int (*audio_samples)(struct gip_client *client, void *data, u32 len);
 };
 
 struct gip_driver {
