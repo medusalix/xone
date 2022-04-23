@@ -70,7 +70,7 @@ git clone https://github.com/medusalix/xone
 
 ```
 cd xone
-sudo ./install.sh --release
+./install.sh --release
 ```
 
 **NOTE:** Please omit the `--release` flag when asked for your debug logs.
@@ -78,7 +78,7 @@ sudo ./install.sh --release
 4. Download the firmware for the wireless dongle:
 
 ```
-sudo xone-get-firmware.sh
+xone-get-firmware.sh
 ```
 
 **NOTE:** The `--skip-disclaimer` flag might be useful for scripting purposes.
@@ -90,7 +90,7 @@ sudo xone-get-firmware.sh
 Make sure to completely uninstall `xone` before updating:
 
 ```
-sudo ./uninstall.sh
+./uninstall.sh
 ```
 
 ## Kernel interface

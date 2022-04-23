@@ -2,8 +2,8 @@
 
 set -eu
 
-if [ "$(id -u)" -ne 0 ]; then
-    echo 'This script must be run as root!' >&2
+if [ "$(id -u)" -eq 0 ]; then
+    echo 'Please do not run this script as root!' >&2
     exit 1
 fi
 
@@ -31,5 +31,5 @@ firmware_hash='48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66'
 curl -L -o driver.cab "$driver_url"
 cabextract -F FW_ACC_00U.bin driver.cab
 echo "$firmware_hash" FW_ACC_00U.bin | sha256sum -c
-mv FW_ACC_00U.bin /lib/firmware/xow_dongle.bin
+sudo mv FW_ACC_00U.bin /lib/firmware/xow_dongle.bin
 rm driver.cab

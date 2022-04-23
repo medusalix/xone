@@ -2,8 +2,8 @@
 
 set -eu
 
-if [ "$(id -u)" -ne 0 ]; then
-    echo 'This script must be run as root!' >&2
+if [ "$(id -u)" -eq 0 ]; then
+    echo 'Please do not run this script as root!' >&2
     exit 1
 fi
 
@@ -13,15 +13,15 @@ version=$(dkms status xone | head -n 1 | tr -s ',:/' ' ' | cut -d ' ' -f 2)
 if [ -n "$modules" ]; then
     echo "Unloading modules: $modules..."
     # shellcheck disable=SC2086
-    modprobe -r -a $modules
+    sudo modprobe -r -a $modules
 fi
 
 if [ -n "$version" ]; then
     echo "Uninstalling xone $version..."
-    dkms remove -m xone -v "$version" --all
-    rm -r "/usr/src/xone-$version"
-    rm -f /etc/modprobe.d/xone-blacklist.conf
-    rm -f /usr/local/bin/xone-get-firmware.sh
+    sudo dkms remove -m xone -v "$version" --all
+    sudo rm -r "/usr/src/xone-$version"
+    sudo rm -f /etc/modprobe.d/xone-blacklist.conf
+    sudo rm -f /usr/local/bin/xone-get-firmware.sh
 else
     echo 'Driver is not installed!' >&2
 fi
