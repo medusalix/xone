@@ -22,7 +22,13 @@ if [ -f /usr/local/bin/xow ]; then
     exit 1
 fi
 
-version=$(git describe --tags 2> /dev/null || echo unknown)
+if [ -n "${SUDO_USER:-}" ]; then
+    # Run as normal user to prevent "unsafe repository" error
+    version=$(sudo -u "$SUDO_USER" git describe --tags 2> /dev/null || echo unknown)
+else
+    version=unknown
+fi
+
 source="/usr/src/xone-$version"
 log="/var/lib/dkms/xone/$version/build/make.log"
 
