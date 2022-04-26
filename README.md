@@ -38,6 +38,7 @@ Always update your Xbox devices to the latest firmware version!
 - [x] Xbox One Chatpad
 - [x] Xbox Adaptive Controller
 - [x] Mad Catz Rock Band 4 Wireless Stratocaster
+- [x] Mad Catz Rock Band 4 Wireless Drum Kit
 
 ## Releases
 
