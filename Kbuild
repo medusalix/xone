@@ -5,4 +5,5 @@ xone-gip-common-y := driver/common.o
 xone-gip-gamepad-y := driver/gamepad.o
 xone-gip-headset-y := driver/headset.o
 xone-gip-chatpad-y := driver/chatpad.o
-obj-m := xone-wired.o xone-dongle.o xone-gip-bus.o xone-gip-common.o xone-gip-gamepad.o xone-gip-headset.o xone-gip-chatpad.o
+xone-gip-guitar-y := driver/guitar.o
+obj-m := xone-wired.o xone-dongle.o xone-gip-bus.o xone-gip-common.o xone-gip-gamepad.o xone-gip-headset.o xone-gip-chatpad.o xone-gip-guitar.o
