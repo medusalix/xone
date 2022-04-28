@@ -108,6 +108,25 @@ echo 5 | sudo tee /sys/class/leds/gip*/brightness
 Replace the wildcard (`gip*`) if you want to control the LED of a specific device.
 The modes and the maximum brightness can vary from device to device.
 
+Changing the LEDs in the above way is temporary; it will only last until the controller disconnects. To make these settings permanent, you can use `udev` rules. If you're not familiar with them, you can read the output of `man udev`, or just take this sample rule and modify it to your liking:
+
+```
+#Lines starting with a number sign are ignored.
+#Expressions are comma-separated.
+#If continuing on the next line, end the current line with a backslash.
+ACTION=="add", \
+    SUBSYSTEM=="leds", \
+    DRIVERS=="xone-gip-gamepad", \
+#The above line will match all xone controllers.
+#Replace it with the below line to only match the first controller.
+#    KERNELS=="gip0.0", \
+#The above lines determine which devices the rule affects.
+#The below lines determine what will be done to those devices.
+#    ATTR{brightness}="3", \
+#    ATTR{mode}="2"
+```
+Put the text in a file named something like `10-xone.rules` (it must have the extension `.rules`), in the directory `/usr/lib/udev/rules.d/`. Then run `sudo udevadm control --reload` to apply your changes.
+
 ### Pairing mode
 
 The pairing mode of the dongle can be queried via `sysfs`:
