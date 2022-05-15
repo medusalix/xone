@@ -71,10 +71,8 @@ static void xone_wired_complete_data_in(struct urb *urb)
 				 urb->actual_length);
 	if (err) {
 		dev_err(dev, "%s: process failed: %d\n", __func__, err);
-		print_hex_dump_debug("xone-wired packet: ",
-				     DUMP_PREFIX_NONE, 16, 1,
-				     urb->transfer_buffer, urb->actual_length,
-				     false);
+		print_hex_dump_bytes("xone-wired packet: ", DUMP_PREFIX_NONE,
+				     urb->transfer_buffer, urb->actual_length);
 	}
 
 resubmit:

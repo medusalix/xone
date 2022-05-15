@@ -697,8 +697,8 @@ static int xone_dongle_process_buffer(struct xone_dongle *dongle,
 	if (err) {
 		dev_err(dongle->mt.dev, "%s: process failed: %d\n",
 			__func__, err);
-		print_hex_dump_debug("xone-dongle packet: ", DUMP_PREFIX_NONE,
-				     16, 1, data, len, false);
+		print_hex_dump_bytes("xone-dongle packet: ", DUMP_PREFIX_NONE,
+				     data, len);
 	}
 
 	dev_kfree_skb(skb);
