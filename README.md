@@ -53,6 +53,7 @@ Any issues regarding the packaging should be reported to the respective maintain
 ### Prerequisites
 
 - Linux (kernel 4.15+ and headers)
+- kernel-devel (Fedora 36)
 - DKMS
 - curl (for firmware download)
 - cabextract (for firmware extraction)
