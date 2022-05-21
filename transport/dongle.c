@@ -866,8 +866,10 @@ static int xone_dongle_probe(struct usb_interface *intf,
 	init_waitqueue_head(&dongle->disconnect_wait);
 
 	err = xone_dongle_init(dongle);
-	if (err)
-		goto err_destroy_dongle;
+	if (err) {
+		xone_dongle_destroy(dongle);
+		return err;
+	}
 
 	usb_set_intfdata(intf, dongle);
 
@@ -879,11 +881,6 @@ static int xone_dongle_probe(struct usb_interface *intf,
 	usb_enable_autosuspend(dongle->mt.udev);
 
 	return 0;
-
-err_destroy_dongle:
-	xone_dongle_destroy(dongle);
-
-	return err;
 }
 
 static void xone_dongle_disconnect(struct usb_interface *intf)
