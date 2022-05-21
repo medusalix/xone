@@ -94,9 +94,7 @@ Make sure to completely uninstall `xone` before updating:
 sudo ./uninstall.sh
 ```
 
-## Kernel interface
-
-### LED control
+## LED control
 
 The guide button LED can be controlled via `sysfs`:
 
@@ -107,20 +105,6 @@ echo 5 | sudo tee /sys/class/leds/gip*/brightness
 
 Replace the wildcard (`gip*`) if you want to control the LED of a specific device.
 The modes and the maximum brightness can vary from device to device.
-
-### Pairing mode
-
-The pairing mode of the dongle can be queried via `sysfs`:
-
-```
-cat /sys/bus/usb/drivers/xone-dongle/*/pairing
-```
-
-You can enable (`1`) or disable (`0`) the pairing using the following command:
-
-```
-echo 1 | sudo tee /sys/bus/usb/drivers/xone-dongle/*/pairing
-```
 
 ## Troubleshooting
 

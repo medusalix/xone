@@ -7,7 +7,6 @@
 #include <linux/slab.h>
 #include <linux/bitfield.h>
 #include <linux/usb.h>
-#include <linux/sysfs.h>
 #include <linux/ieee80211.h>
 #include <net/cfg80211.h>
 
@@ -228,47 +227,6 @@ err_unlock:
 
 	return err;
 }
-
-static ssize_t xone_dongle_pairing_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	struct usb_interface *intf = to_usb_interface(dev);
-	struct xone_dongle *dongle = usb_get_intfdata(intf);
-
-	return sprintf(buf, "%d\n", dongle->pairing);
-}
-
-static ssize_t xone_dongle_pairing_store(struct device *dev,
-					 struct device_attribute *attr,
-					 const char *buf, size_t count)
-{
-	struct usb_interface *intf = to_usb_interface(dev);
-	struct xone_dongle *dongle = usb_get_intfdata(intf);
-	bool enable;
-	int err;
-
-	err = kstrtobool(buf, &enable);
-	if (err)
-		return err;
-
-	err = xone_dongle_toggle_pairing(dongle, enable);
-	if (err)
-		return err;
-
-	return count;
-}
-
-static struct device_attribute xone_dongle_attr_pairing =
-	__ATTR(pairing, 0644,
-	       xone_dongle_pairing_show,
-	       xone_dongle_pairing_store);
-
-static struct attribute *xone_dongle_attrs[] = {
-	&xone_dongle_attr_pairing.attr,
-	NULL,
-};
-ATTRIBUTE_GROUPS(xone_dongle);
 
 static struct xone_dongle_client *
 xone_dongle_create_client(struct xone_dongle *dongle, u8 *addr)
@@ -900,10 +858,6 @@ static int xone_dongle_probe(struct usb_interface *intf,
 
 	usb_set_intfdata(intf, dongle);
 
-	err = device_add_groups(&intf->dev, xone_dongle_groups);
-	if (err)
-		goto err_destroy_dongle;
-
 	/* enable USB remote wakeup and autosuspend */
 	intf->needs_remote_wakeup = true;
 	device_wakeup_enable(&dongle->mt.udev->dev);
@@ -923,8 +877,6 @@ static void xone_dongle_disconnect(struct usb_interface *intf)
 {
 	struct xone_dongle *dongle = usb_get_intfdata(intf);
 	int err;
-
-	device_remove_groups(&intf->dev, xone_dongle_groups);
 
 	/* can fail during USB device removal */
 	err = xone_dongle_power_off_clients(dongle);
