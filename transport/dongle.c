@@ -24,6 +24,7 @@
 /* autosuspend delay in ms */
 #define XONE_DONGLE_SUSPEND_DELAY 60000
 
+#define XONE_DONGLE_PAIRING_TIMEOUT msecs_to_jiffies(30000)
 #define XONE_DONGLE_PWR_OFF_TIMEOUT msecs_to_jiffies(5000)
 
 enum xone_dongle_queue {
@@ -49,7 +50,7 @@ struct xone_dongle_event {
 		XONE_DONGLE_EVT_ADD_CLIENT,
 		XONE_DONGLE_EVT_REMOVE_CLIENT,
 		XONE_DONGLE_EVT_PAIR_CLIENT,
-		XONE_DONGLE_EVT_TOGGLE_PAIRING,
+		XONE_DONGLE_EVT_ENABLE_PAIRING,
 	} type;
 
 	struct xone_dongle *dongle;
@@ -69,6 +70,7 @@ struct xone_dongle {
 
 	/* serializes pairing changes */
 	struct mutex pairing_lock;
+	struct delayed_work pairing_work;
 	bool pairing;
 
 	/* serializes access to clients array */
@@ -189,13 +191,12 @@ static struct gip_adapter_ops xone_dongle_adapter_ops = {
 
 static int xone_dongle_toggle_pairing(struct xone_dongle *dongle, bool enable)
 {
-	struct usb_interface *intf = to_usb_interface(dongle->mt.dev);
 	enum xone_mt76_led_mode led;
 	int err = 0;
 
 	mutex_lock(&dongle->pairing_lock);
 
-	/* pairing is already enabled */
+	/* pairing is already enabled/disabled */
 	if (dongle->pairing == enable)
 		goto err_unlock;
 
@@ -214,11 +215,6 @@ static int xone_dongle_toggle_pairing(struct xone_dongle *dongle, bool enable)
 	if (err)
 		goto err_unlock;
 
-	if (enable)
-		usb_autopm_get_interface(intf);
-	else
-		usb_autopm_put_interface(intf);
-
 	dev_dbg(dongle->mt.dev, "%s: enabled=%d\n", __func__, enable);
 	dongle->pairing = enable;
 
@@ -226,6 +222,19 @@ err_unlock:
 	mutex_unlock(&dongle->pairing_lock);
 
 	return err;
+}
+
+static void xone_dongle_pairing_timeout(struct work_struct *work)
+{
+	struct xone_dongle *dongle = container_of(to_delayed_work(work),
+						  typeof(*dongle),
+						  pairing_work);
+	int err;
+
+	err = xone_dongle_toggle_pairing(dongle, false);
+	if (err)
+		dev_err(dongle->mt.dev, "%s: disable pairing failed: %d\n",
+			__func__, err);
 }
 
 static struct xone_dongle_client *
@@ -365,7 +374,9 @@ static void xone_dongle_handle_event(struct work_struct *work)
 	case XONE_DONGLE_EVT_PAIR_CLIENT:
 		err = xone_dongle_pair_client(evt->dongle, evt->address);
 		break;
-	case XONE_DONGLE_EVT_TOGGLE_PAIRING:
+	case XONE_DONGLE_EVT_ENABLE_PAIRING:
+		mod_delayed_work(system_wq, &evt->dongle->pairing_work,
+				 XONE_DONGLE_PAIRING_TIMEOUT);
 		err = xone_dongle_toggle_pairing(evt->dongle, true);
 		break;
 	}
@@ -475,7 +486,7 @@ static int xone_dongle_handle_button(struct xone_dongle *dongle)
 {
 	struct xone_dongle_event *evt;
 
-	evt = xone_dongle_alloc_event(dongle, XONE_DONGLE_EVT_TOGGLE_PAIRING);
+	evt = xone_dongle_alloc_event(dongle, XONE_DONGLE_EVT_ENABLE_PAIRING);
 	if (!evt)
 		return -ENOMEM;
 
@@ -793,7 +804,7 @@ static int xone_dongle_power_off_clients(struct xone_dongle *dongle)
 				XONE_DONGLE_PWR_OFF_TIMEOUT))
 		return -ETIMEDOUT;
 
-	return 0;
+	return xone_dongle_toggle_pairing(dongle, false);
 }
 
 static void xone_dongle_destroy(struct xone_dongle *dongle)
@@ -804,6 +815,7 @@ static void xone_dongle_destroy(struct xone_dongle *dongle)
 
 	usb_kill_anchored_urbs(&dongle->urbs_in_busy);
 	destroy_workqueue(dongle->event_wq);
+	cancel_delayed_work_sync(&dongle->pairing_work);
 
 	for (i = 0; i < XONE_DONGLE_MAX_CLIENTS; i++) {
 		client = dongle->clients[i];
@@ -849,6 +861,7 @@ static int xone_dongle_probe(struct usb_interface *intf,
 		return -ENOMEM;
 
 	mutex_init(&dongle->pairing_lock);
+	INIT_DELAYED_WORK(&dongle->pairing_work, xone_dongle_pairing_timeout);
 	spin_lock_init(&dongle->clients_lock);
 	init_waitqueue_head(&dongle->disconnect_wait);
 
@@ -901,6 +914,7 @@ static int xone_dongle_suspend(struct usb_interface *intf, pm_message_t message)
 	usb_kill_anchored_urbs(&dongle->urbs_in_busy);
 	usb_kill_anchored_urbs(&dongle->urbs_out_busy);
 	flush_workqueue(dongle->event_wq);
+	cancel_delayed_work_sync(&dongle->pairing_work);
 
 	return xone_mt76_suspend_radio(&dongle->mt);
 }
