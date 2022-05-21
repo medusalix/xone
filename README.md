@@ -94,6 +94,12 @@ Make sure to completely uninstall `xone` before updating:
 sudo ./uninstall.sh
 ```
 
+## Wireless pairing
+
+Xbox devices have to be paired to the wireless dongle. They will not automatically connect to the dongle if they have been previously plugged into a USB port or used via Bluetooth.
+
+Instructions for pairing your devices can be found [here](https://support.xbox.com/en-US/help/hardware-network/controller/connect-xbox-wireless-controller-to-pc) (see the section on *Xbox Wireless*).
+
 ## LED control
 
 The guide button LED can be controlled via `sysfs`:
