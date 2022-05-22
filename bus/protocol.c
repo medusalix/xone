@@ -217,7 +217,7 @@ static int gip_decode_varint(u8 *data, int len, u32 *val)
 	return i + 1;
 }
 
-static int gip_calc_header_space(struct gip_header *hdr)
+static int gip_get_actual_header_length(struct gip_header *hdr)
 {
 	u32 pkt_len = hdr->packet_length;
 	u32 chunk_offset = hdr->chunk_offset;
@@ -238,9 +238,9 @@ static int gip_calc_header_space(struct gip_header *hdr)
 	return len;
 }
 
-static int gip_calc_header_length(struct gip_header *hdr)
+static int gip_get_header_length(struct gip_header *hdr)
 {
-	int len = gip_calc_header_space(hdr);
+	int len = gip_get_actual_header_length(hdr);
 
 	/* round up to nearest even length */
 	return len + (len % 2);
@@ -257,7 +257,7 @@ static void gip_encode_header(struct gip_header *hdr, u8 *buf)
 	hdr_len += gip_encode_varint(buf + hdr_len, hdr->packet_length);
 
 	/* header length must be even */
-	if (gip_calc_header_space(hdr) % 2) {
+	if (gip_get_actual_header_length(hdr) % 2) {
 		buf[hdr_len - 1] |= BIT(7);
 		buf[hdr_len++] = 0;
 	}
@@ -305,7 +305,7 @@ static int gip_send_pkt(struct gip_client *client,
 		goto err_unlock;
 	}
 
-	hdr_len = gip_calc_header_length(hdr);
+	hdr_len = gip_get_header_length(hdr);
 	if (buf.length < hdr_len + hdr->packet_length) {
 		err = -ENOSPC;
 		goto err_unlock;
@@ -530,7 +530,7 @@ static void gip_copy_audio_samples(struct gip_client *client,
 	hdr.options = client->id | GIP_OPT_INTERNAL;
 	hdr.packet_length = cfg->fragment_size;
 
-	hdr_len = gip_calc_header_length(&hdr);
+	hdr_len = gip_get_header_length(&hdr);
 
 	for (i = 0; i < client->adapter->audio_packet_count; i++) {
 		src = samples + i * cfg->fragment_size;
@@ -671,7 +671,7 @@ static int gip_make_audio_config(struct gip_client *client,
 
 	/* pseudo header for length calculation */
 	hdr.packet_length = cfg->fragment_size;
-	cfg->packet_size = gip_calc_header_length(&hdr) + cfg->fragment_size;
+	cfg->packet_size = gip_get_header_length(&hdr) + cfg->fragment_size;
 	cfg->valid = true;
 
 	dev_dbg(&client->dev, "%s: rate=%d/%d, buffer=%d\n", __func__,
