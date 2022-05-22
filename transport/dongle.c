@@ -191,6 +191,7 @@ static struct gip_adapter_ops xone_dongle_adapter_ops = {
 
 static int xone_dongle_toggle_pairing(struct xone_dongle *dongle, bool enable)
 {
+	struct usb_interface *intf = to_usb_interface(dongle->mt.dev);
 	enum xone_mt76_led_mode led;
 	int err = 0;
 
@@ -214,6 +215,11 @@ static int xone_dongle_toggle_pairing(struct xone_dongle *dongle, bool enable)
 	err = xone_mt76_set_led_mode(&dongle->mt, led);
 	if (err)
 		goto err_unlock;
+
+	if (enable)
+		usb_autopm_get_interface(intf);
+	else
+		usb_autopm_put_interface(intf);
 
 	dev_dbg(dongle->mt.dev, "%s: enabled=%d\n", __func__, enable);
 	dongle->pairing = enable;
