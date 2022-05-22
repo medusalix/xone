@@ -333,6 +333,7 @@ void gip_free_client_info(struct gip_client *client)
 	int i;
 
 	kfree(client->external_commands);
+	kfree(client->firmware_versions);
 	kfree(client->audio_formats);
 	kfree(client->capabilities_out);
 	kfree(client->capabilities_in);

@@ -72,9 +72,10 @@ struct gip_client {
 	struct gip_hardware hardware;
 
 	struct gip_info_element *external_commands;
+	struct gip_info_element *firmware_versions;
 	struct gip_info_element *audio_formats;
-	struct gip_info_element *capabilities_in;
 	struct gip_info_element *capabilities_out;
+	struct gip_info_element *capabilities_in;
 	struct gip_classes *classes;
 	struct gip_info_element *interfaces;
 	struct gip_info_element *hid_descriptor;

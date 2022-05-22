@@ -102,7 +102,7 @@ struct gip_pkt_status {
 struct gip_pkt_identify {
 	u8 unknown[16];
 	__le16 external_commands_offset;
-	__le16 unknown_offset;
+	__le16 firmware_versions_offset;
 	__le16 audio_formats_offset;
 	__le16 capabilities_out_offset;
 	__le16 capabilities_in_offset;
@@ -182,6 +182,11 @@ struct gip_command_descriptor {
 	u8 unknown2[3];
 	u8 options;
 	u8 unknown3[15];
+} __packed;
+
+struct gip_firmware_version {
+	__le16 major;
+	__le16 minor;
 } __packed;
 
 static int gip_encode_varint(u8 *buf, u32 val)
@@ -744,6 +749,33 @@ static int gip_parse_external_commands(struct gip_client *client,
 	return 0;
 }
 
+static int gip_parse_firmware_versions(struct gip_client *client,
+				       struct gip_pkt_identify *pkt,
+				       u8 *data, u32 len)
+{
+	struct gip_info_element *vers;
+	struct gip_firmware_version *ver;
+	int i;
+
+	vers = gip_parse_info_element(data, len, pkt->firmware_versions_offset,
+				      sizeof(*ver));
+	if (IS_ERR(vers)) {
+		dev_err(&client->dev, "%s: parse failed: %ld\n",
+			__func__, PTR_ERR(vers));
+		return PTR_ERR(vers);
+	}
+
+	for (i = 0; i < vers->count; i++) {
+		ver = (struct gip_firmware_version *)vers->data + i;
+		dev_dbg(&client->dev, "%s: version=%u.%u\n", __func__,
+			le16_to_cpu(ver->major), le16_to_cpu(ver->minor));
+	}
+
+	client->firmware_versions = vers;
+
+	return 0;
+}
+
 static int gip_parse_audio_formats(struct gip_client *client,
 				   struct gip_pkt_identify *pkt,
 				   u8 *data, u32 len)
@@ -982,6 +1014,10 @@ static int gip_handle_pkt_identify(struct gip_client *client,
 	len -= sizeof(pkt->unknown);
 
 	err = gip_parse_external_commands(client, pkt, data, len);
+	if (err)
+		goto err_free_info;
+
+	err = gip_parse_firmware_versions(client, pkt, data, len);
 	if (err)
 		goto err_free_info;
 
