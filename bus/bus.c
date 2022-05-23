@@ -387,5 +387,5 @@ module_init(gip_bus_init);
 module_exit(gip_bus_exit);
 
 MODULE_AUTHOR("Severin von Wnuck <severinvonw@outlook.de>");
-MODULE_DESCRIPTION("xone GIP bus driver");
+MODULE_DESCRIPTION("xone GIP driver");
 MODULE_LICENSE("GPL");
