@@ -6,7 +6,6 @@
 #include <linux/module.h>
 #include <linux/uuid.h>
 #include <linux/timer.h>
-#include <linux/input.h>
 
 #include "common.h"
 
