@@ -151,58 +151,56 @@ static const struct snd_pcm_ops gip_headset_pcm_ops = {
 	.page = snd_pcm_lib_get_vmalloc_page,
 };
 
-static bool gip_headset_copy_playback(struct gip_headset_stream *stream,
-				      unsigned char *data, int len)
+static bool gip_headset_advance_pointer(struct gip_headset_stream *stream,
+					int len, size_t buf_size)
 {
-	struct snd_pcm_runtime *runtime = stream->substream->runtime;
-	size_t buf_size = snd_pcm_lib_buffer_bytes(stream->substream);
-	size_t remaining = buf_size - stream->pointer;
-
-	if (len <= remaining) {
-		memcpy(data, runtime->dma_area + stream->pointer, len);
-	} else {
-		memcpy(data, runtime->dma_area + stream->pointer, remaining);
-		memcpy(data + remaining, runtime->dma_area, len - remaining);
-	}
+	snd_pcm_uframes_t period = stream->substream->runtime->period_size;
 
 	stream->pointer += len;
 	if (stream->pointer >= buf_size)
 		stream->pointer -= buf_size;
 
 	stream->period += len;
-	if (stream->period >= runtime->period_size) {
-		stream->period -= runtime->period_size;
+	if (stream->period >= period) {
+		stream->period -= period;
 		return true;
 	}
 
 	return false;
 }
 
-static bool gip_headset_copy_capture(struct gip_headset_stream *stream,
-				     unsigned char *data, int len)
+static bool gip_headset_copy_playback(struct gip_headset_stream *stream,
+				      unsigned char *data, int len)
 {
-	struct snd_pcm_runtime *runtime = stream->substream->runtime;
+	unsigned char *src = stream->substream->runtime->dma_area;
 	size_t buf_size = snd_pcm_lib_buffer_bytes(stream->substream);
 	size_t remaining = buf_size - stream->pointer;
 
 	if (len <= remaining) {
-		memcpy(runtime->dma_area + stream->pointer, data, len);
+		memcpy(data, src + stream->pointer, len);
 	} else {
-		memcpy(runtime->dma_area + stream->pointer, data, remaining);
-		memcpy(runtime->dma_area, data + remaining, len - remaining);
+		memcpy(data, src + stream->pointer, remaining);
+		memcpy(data + remaining, src, len - remaining);
 	}
 
-	stream->pointer += len;
-	if (stream->pointer >= buf_size)
-		stream->pointer -= buf_size;
+	return gip_headset_advance_pointer(stream, len, buf_size);
+}
 
-	stream->period += len;
-	if (stream->period >= runtime->period_size) {
-		stream->period -= runtime->period_size;
-		return true;
+static bool gip_headset_copy_capture(struct gip_headset_stream *stream,
+				     unsigned char *data, int len)
+{
+	unsigned char *dest = stream->substream->runtime->dma_area;
+	size_t buf_size = snd_pcm_lib_buffer_bytes(stream->substream);
+	size_t remaining = buf_size - stream->pointer;
+
+	if (len <= remaining) {
+		memcpy(dest + stream->pointer, data, len);
+	} else {
+		memcpy(dest + stream->pointer, data, remaining);
+		memcpy(dest, data + remaining, len - remaining);
 	}
 
-	return false;
+	return gip_headset_advance_pointer(stream, len, buf_size);
 }
 
 static enum hrtimer_restart gip_headset_send_samples(struct hrtimer *timer)
