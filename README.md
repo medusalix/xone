@@ -67,7 +67,7 @@ Any issues regarding the packaging should be reported to the respective maintain
 git clone https://github.com/medusalix/xone
 ```
 
-3. Install `xone` using the following command:
+3. Install `xone`:
 
 ```
 cd xone
