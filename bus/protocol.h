@@ -21,7 +21,6 @@ enum gip_battery_type {
 	GIP_BATT_TYPE_NONE = 0x00,
 	GIP_BATT_TYPE_STANDARD = 0x01,
 	GIP_BATT_TYPE_KIT = 0x02,
-	GIP_BATT_TYPE_UNKNOWN = 0x03,
 };
 
 enum gip_battery_level {
