@@ -1301,8 +1301,7 @@ static int gip_process_pkt_chunked(struct gip_client *client,
 	}
 
 	/* empty chunk signals the completion of the transfer */
-	/* offset (total transfer length) can be smaller than buffer */
-	err = gip_dispatch_pkt(client, hdr, buf->data, hdr->chunk_offset);
+	err = gip_dispatch_pkt(client, hdr, buf->data, buf->length);
 
 	kfree(buf);
 	client->chunk_buf = NULL;
