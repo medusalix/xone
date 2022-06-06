@@ -1099,7 +1099,7 @@ int xone_mt76_associate_client(struct xone_mt76 *mt, u8 wcid, u8 *addr)
 		       sizeof(mgmt.u.assoc_resp);
 	int err;
 
-	skb = xone_mt76_alloc_message(sizeof(struct mt76_txwi) + mgmt_len,
+	skb = xone_mt76_alloc_message(sizeof(struct mt76_txwi) + mgmt_len + 8,
 				      GFP_KERNEL);
 	if (!skb)
 		return -ENOMEM;
