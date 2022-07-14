@@ -11,7 +11,7 @@
 
 #include "../bus/bus.h"
 
-#define GIP_HS_NAME "Microsoft X-Box One headset"
+#define GIP_HS_NAME "Microsoft Xbox One Headset"
 
 #define GIP_HS_CONFIG_DELAY msecs_to_jiffies(1000)
 #define GIP_HS_POWER_ON_DELAY msecs_to_jiffies(1000)
