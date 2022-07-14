@@ -11,7 +11,7 @@
 
 #include "common.h"
 
-#define GIP_HS_NAME "Microsoft X-Box One headset"
+#define GIP_HS_NAME "Microsoft Xbox Headset"
 
 /* product ID for the chat headset */
 #define GIP_HS_PID_CHAT 0x0111

@@ -9,7 +9,7 @@
 
 #include "common.h"
 
-#define GIP_GP_NAME "Microsoft X-Box One pad"
+#define GIP_GP_NAME "Microsoft Xbox Controller"
 
 /* product ID for the elite controller series 2 */
 #define GIP_GP_PID_ELITE2 0x0b00
