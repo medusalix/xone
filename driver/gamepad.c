@@ -57,7 +57,8 @@ struct gip_gamepad_pkt_input {
 } __packed;
 
 struct gip_gamepad_pkt_series_xs {
-	u8 unknown[4];
+	u8 share_button_alt; /* Used by 8BitDo Pro 2 Wired for Xbox */
+	u8 unknown[3];
 	u8 share_button;
 } __packed;
 
@@ -255,7 +256,7 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, u32 len)
 		if (len < sizeof(*pkt) + sizeof(*pkt_xs))
 			return -EINVAL;
 
-		input_report_key(dev, KEY_RECORD, !!pkt_xs->share_button);
+		input_report_key(dev, KEY_RECORD, !!pkt_xs->share_button || !!pkt_xs->share_button_alt);
 	}
 
 	input_report_key(dev, BTN_START, buttons & GIP_GP_BTN_MENU);
