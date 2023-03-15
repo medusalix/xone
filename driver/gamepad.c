@@ -175,7 +175,7 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 
 	gamepad->series_xs = gip_gamepad_is_series_xs(gamepad->client);
 	if (gamepad->series_xs)
-		input_set_capability(dev, EV_KEY, KEY_RECORD);
+		input_set_capability(dev, EV_KEY, BTN_TRIGGER_HAPPY11);
 
 	input_set_capability(dev, EV_KEY, BTN_MODE);
 	input_set_capability(dev, EV_KEY, BTN_START);
@@ -255,7 +255,7 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, u32 len)
 		if (len < sizeof(*pkt) + sizeof(*pkt_xs))
 			return -EINVAL;
 
-		input_report_key(dev, KEY_RECORD, !!pkt_xs->share_button);
+		input_report_key(dev, BTN_TRIGGER_HAPPY11, !!pkt_xs->share_button);
 	}
 
 	input_report_key(dev, BTN_START, buttons & GIP_GP_BTN_MENU);
