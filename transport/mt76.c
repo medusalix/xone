@@ -648,6 +648,7 @@ static int xone_mt76_evaluate_channels(struct xone_mt76 *mt)
 			return err;
 		
 		/* pick the highest power channel seen first */
+		/* the last channel might not be the best one */
 		if (chan->power > pow) {
 			mt->channel = chan;
 			pow = chan->power;
@@ -657,7 +658,6 @@ static int xone_mt76_evaluate_channels(struct xone_mt76 *mt)
 			chan->index, chan->power);
 	}
 
-	/* the last channel might not be the best one */
 	if (mt->channel == NULL)
 		mt->channel = chan;
 
