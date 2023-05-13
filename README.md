@@ -76,14 +76,6 @@ sudo ./install.sh --release
 
 **NOTE:** Please omit the `--release` flag when asked for your debug logs.
 
-4. Download the firmware for the wireless dongle:
-
-```
-sudo xone-get-firmware.sh
-```
-
-**NOTE:** The `--skip-disclaimer` flag might be useful for scripting purposes.
-
 5. Plug in your Xbox devices.
 
 ### Updating
