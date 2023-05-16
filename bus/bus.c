@@ -67,7 +67,11 @@ static void gip_client_state_changed(struct work_struct *work)
 	}
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 static int gip_client_uevent(struct device *dev, struct kobj_uevent_env *env)
+#else
+static int gip_client_uevent(const struct device *dev, struct kobj_uevent_env *env)
+#endif
 {
 	struct gip_client *client = to_gip_client(dev);
 	struct gip_classes *classes = client->classes;
