@@ -559,6 +559,7 @@ static const struct usb_device_id xone_wired_id_table[] = {
 	{ XONE_WIRED_VENDOR(0x2dc8) }, /* 8BitDo */
 	{ XONE_WIRED_VENDOR(0x2e95) }, /* SCUF */
 	{ XONE_WIRED_VENDOR(0x3537) }, /* GameSir */
+	{ XONE_WIRED_VENDOR(0x11c1) }, /* ??? */
 	{ },
 };
 
