@@ -31,9 +31,9 @@ static const struct snd_pcm_hardware gip_headset_pcm_hw = {
 struct gip_headset {
 	struct gip_client *client;
 
-	struct delayed_work config_work;
-	struct delayed_work power_on_work;
-	struct work_struct register_work;
+	struct delayed_work work_config;
+	struct delayed_work work_power_on;
+	struct work_struct work_register;
 	bool registered;
 
 	struct hrtimer timer;
@@ -308,7 +308,7 @@ static void gip_headset_config(struct work_struct *work)
 {
 	struct gip_headset *headset = container_of(to_delayed_work(work),
 						   typeof(*headset),
-						   config_work);
+						   work_config);
 	struct gip_client *client = headset->client;
 	struct gip_info_element *fmts = client->audio_formats;
 	int err;
@@ -327,7 +327,7 @@ static void gip_headset_power_on(struct work_struct *work)
 {
 	struct gip_headset *headset = container_of(to_delayed_work(work),
 						   typeof(*headset),
-						   power_on_work);
+						   work_power_on);
 	struct gip_client *client = headset->client;
 	int err;
 
@@ -340,7 +340,7 @@ static void gip_headset_power_on(struct work_struct *work)
 static void gip_headset_register(struct work_struct *work)
 {
 	struct gip_headset *headset = container_of(work, typeof(*headset),
-						   register_work);
+						   work_register);
 	struct device *dev = &headset->client->dev;
 	int err;
 
@@ -373,7 +373,7 @@ static int gip_headset_op_audio_ready(struct gip_client *client)
 {
 	struct gip_headset *headset = dev_get_drvdata(&client->dev);
 
-	schedule_delayed_work(&headset->power_on_work, GIP_HS_POWER_ON_DELAY);
+	schedule_delayed_work(&headset->work_power_on, GIP_HS_POWER_ON_DELAY);
 
 	return 0;
 }
@@ -385,7 +385,7 @@ static int gip_headset_op_audio_volume(struct gip_client *client,
 
 	/* headset reported initial volume, start audio I/O */
 	if (!headset->registered) {
-		schedule_work(&headset->register_work);
+		schedule_work(&headset->work_register);
 		headset->registered = true;
 	}
 
@@ -433,9 +433,9 @@ static int gip_headset_probe(struct gip_client *client)
 
 	headset->client = client;
 
-	INIT_DELAYED_WORK(&headset->config_work, gip_headset_config);
-	INIT_DELAYED_WORK(&headset->power_on_work, gip_headset_power_on);
-	INIT_WORK(&headset->register_work, gip_headset_register);
+	INIT_DELAYED_WORK(&headset->work_config, gip_headset_config);
+	INIT_DELAYED_WORK(&headset->work_power_on, gip_headset_power_on);
+	INIT_WORK(&headset->work_register, gip_headset_register);
 
 	hrtimer_init(&headset->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	headset->timer.function = gip_headset_send_samples;
@@ -453,7 +453,7 @@ static int gip_headset_probe(struct gip_client *client)
 	dev_set_drvdata(&client->dev, headset);
 
 	/* delay to prevent response from being dropped */
-	schedule_delayed_work(&headset->config_work, GIP_HS_CONFIG_DELAY);
+	schedule_delayed_work(&headset->work_config, GIP_HS_CONFIG_DELAY);
 
 	return 0;
 }
@@ -462,9 +462,9 @@ static void gip_headset_remove(struct gip_client *client)
 {
 	struct gip_headset *headset = dev_get_drvdata(&client->dev);
 
-	cancel_delayed_work_sync(&headset->config_work);
-	cancel_delayed_work_sync(&headset->power_on_work);
-	cancel_work_sync(&headset->register_work);
+	cancel_delayed_work_sync(&headset->work_config);
+	cancel_delayed_work_sync(&headset->work_power_on);
+	cancel_work_sync(&headset->work_register);
 	hrtimer_cancel(&headset->timer);
 	gip_disable_audio(client);
 
