@@ -180,10 +180,10 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 	input_set_capability(dev, EV_KEY, BTN_MODE);
 	input_set_capability(dev, EV_KEY, BTN_START);
 	input_set_capability(dev, EV_KEY, BTN_SELECT);
-	input_set_capability(dev, EV_KEY, BTN_A);
-	input_set_capability(dev, EV_KEY, BTN_B);
-	input_set_capability(dev, EV_KEY, BTN_X);
-	input_set_capability(dev, EV_KEY, BTN_Y);
+	input_set_capability(dev, EV_KEY, BTN_SOUTH);
+	input_set_capability(dev, EV_KEY, BTN_EAST);
+	input_set_capability(dev, EV_KEY, BTN_NORTH);
+	input_set_capability(dev, EV_KEY, BTN_WEST);
 	input_set_capability(dev, EV_KEY, BTN_TL);
 	input_set_capability(dev, EV_KEY, BTN_TR);
 	input_set_capability(dev, EV_KEY, BTN_THUMBL);
@@ -260,10 +260,10 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, u32 len)
 
 	input_report_key(dev, BTN_START, buttons & GIP_GP_BTN_MENU);
 	input_report_key(dev, BTN_SELECT, buttons & GIP_GP_BTN_VIEW);
-	input_report_key(dev, BTN_A, buttons & GIP_GP_BTN_A);
-	input_report_key(dev, BTN_B, buttons & GIP_GP_BTN_B);
-	input_report_key(dev, BTN_X, buttons & GIP_GP_BTN_X);
-	input_report_key(dev, BTN_Y, buttons & GIP_GP_BTN_Y);
+	input_report_key(dev, BTN_SOUTH, buttons & GIP_GP_BTN_A);
+	input_report_key(dev, BTN_EAST, buttons & GIP_GP_BTN_B);
+	input_report_key(dev, BTN_WEST, buttons & GIP_GP_BTN_X);
+	input_report_key(dev, BTN_NORTH, buttons & GIP_GP_BTN_Y);
 	input_report_key(dev, BTN_TL, buttons & GIP_GP_BTN_BUMPER_L);
 	input_report_key(dev, BTN_TR, buttons & GIP_GP_BTN_BUMPER_R);
 	input_report_key(dev, BTN_THUMBL, buttons & GIP_GP_BTN_STICK_L);
