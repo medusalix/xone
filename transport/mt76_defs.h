@@ -1019,6 +1019,18 @@ enum mt76_qsel {
 	MT_QSEL_EDCA_2,
 };
 
+enum mt76_cipher_type {
+	MT_CIPHER_NONE,
+	MT_CIPHER_WEP40,
+	MT_CIPHER_WEP104,
+	MT_CIPHER_TKIP,
+	MT_CIPHER_AES_CCMP,
+	MT_CIPHER_CKIP40,
+	MT_CIPHER_CKIP104,
+	MT_CIPHER_CKIP128,
+	MT_CIPHER_WAPI,
+};
+
 struct mt76_fw_header {
 	__le32 ilm_len;
 	__le32 dlm_len;

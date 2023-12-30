@@ -8,6 +8,7 @@
 #include <linux/timer.h>
 
 #include "common.h"
+#include "../auth/auth.h"
 
 #define GIP_GP_NAME "Microsoft X-Box One pad"
 
@@ -79,6 +80,7 @@ struct gip_gamepad_pkt_rumble {
 struct gip_gamepad {
 	struct gip_client *client;
 	struct gip_battery battery;
+	struct gip_auth auth;
 	struct gip_led led;
 	struct gip_input input;
 
@@ -221,6 +223,14 @@ static int gip_gamepad_op_battery(struct gip_client *client,
 	return 0;
 }
 
+static int gip_gamepad_op_authenticate(struct gip_client *client,
+				       void *data, u32 len)
+{
+	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
+
+	return gip_auth_process_pkt(&gamepad->auth, data, len);
+}
+
 static int gip_gamepad_op_guide_button(struct gip_client *client, bool down)
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
@@ -302,7 +312,7 @@ static int gip_gamepad_probe(struct gip_client *client)
 	if (err)
 		return err;
 
-	err = gip_complete_authentication(client);
+	err = gip_auth_start_handshake(&gamepad->auth, client);
 	if (err)
 		return err;
 
@@ -331,6 +341,7 @@ static struct gip_driver gip_gamepad_driver = {
 	.class = "Windows.Xbox.Input.Gamepad",
 	.ops = {
 		.battery = gip_gamepad_op_battery,
+		.authenticate = gip_gamepad_op_authenticate,
 		.guide_button = gip_gamepad_op_guide_button,
 		.input = gip_gamepad_op_input,
 	},

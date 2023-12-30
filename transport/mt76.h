@@ -62,4 +62,6 @@ int xone_mt76_set_pairing(struct xone_mt76 *mt, bool enable);
 
 int xone_mt76_pair_client(struct xone_mt76 *mt, u8 *addr);
 int xone_mt76_associate_client(struct xone_mt76 *mt, u8 wcid, u8 *addr);
+int xone_mt76_set_client_key(struct xone_mt76 *mt, u8 wcid, u8 *key, int len);
+int xone_mt76_enable_client_encryption(struct xone_mt76 *mt, u8 *addr);
 int xone_mt76_remove_client(struct xone_mt76 *mt, u8 wcid);

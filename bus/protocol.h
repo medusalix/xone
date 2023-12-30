@@ -92,7 +92,8 @@ struct gip_client;
 struct gip_adapter;
 
 int gip_set_power_mode(struct gip_client *client, enum gip_power_mode mode);
-int gip_complete_authentication(struct gip_client *client);
+int gip_send_authenticate(struct gip_client *client, void *pkt, u32 len,
+			  bool acknowledge);
 int gip_suggest_audio_format(struct gip_client *client,
 			     enum gip_audio_format in,
 			     enum gip_audio_format out,
@@ -104,6 +105,7 @@ int gip_set_led_mode(struct gip_client *client,
 int gip_send_audio_samples(struct gip_client *client, void *samples);
 
 bool gip_has_interface(struct gip_client *client, const guid_t *guid);
+int gip_set_encryption_key(struct gip_client *client, u8 *key, int len);
 int gip_enable_audio(struct gip_client *client);
 int gip_init_audio_in(struct gip_client *client);
 int gip_init_audio_out(struct gip_client *client);

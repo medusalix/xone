@@ -35,6 +35,7 @@ struct gip_adapter_ops {
 			  struct gip_adapter_buffer *buf);
 	int (*submit_buffer)(struct gip_adapter *adap,
 			     struct gip_adapter_buffer *buf);
+	int (*set_encryption_key)(struct gip_adapter *adap, u8 *key, int len);
 	int (*enable_audio)(struct gip_adapter *adap);
 	int (*init_audio_in)(struct gip_adapter *adap);
 	int (*init_audio_out)(struct gip_adapter *adap, int pkt_len);
@@ -89,6 +90,7 @@ struct gip_driver_ops {
 	int (*battery)(struct gip_client *client,
 		       enum gip_battery_type type,
 		       enum gip_battery_level level);
+	int (*authenticate)(struct gip_client *client, void *data, u32 len);
 	int (*guide_button)(struct gip_client *client, bool down);
 	int (*audio_ready)(struct gip_client *client);
 	int (*audio_volume)(struct gip_client *client, u8 in, u8 out);

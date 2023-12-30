@@ -12,6 +12,9 @@
 #define GIP_HDR_CLIENT_ID GENMASK(3, 0)
 #define GIP_HDR_MIN_LENGTH 3
 
+/* max length, even for wireless packets (except audio) */
+#define GIP_PKT_MAX_LENGTH 58
+
 #define GIP_CHUNK_BUF_MAX_LENGTH 0xffff
 
 #define GIP_BATT_LEVEL GENMASK(1, 0)
@@ -113,11 +116,6 @@ struct gip_pkt_identify {
 
 struct gip_pkt_power {
 	u8 mode;
-} __packed;
-
-struct gip_pkt_authenticate {
-	u8 unknown1;
-	u8 unknown2;
 } __packed;
 
 struct gip_pkt_virtual_key {
@@ -291,8 +289,8 @@ static int gip_decode_header(struct gip_header *hdr, u8 *data, int len)
 	return hdr_len;
 }
 
-static int gip_send_pkt(struct gip_client *client,
-			struct gip_header *hdr, void *data)
+static int gip_send_pkt_simple(struct gip_client *client,
+			       struct gip_header *hdr, void *data)
 {
 	struct gip_adapter *adap = client->adapter;
 	struct gip_adapter_buffer buf = {};
@@ -336,6 +334,46 @@ err_unlock:
 	spin_unlock_irqrestore(&adap->send_lock, flags);
 
 	return err;
+}
+
+static int gip_send_pkt(struct gip_client *client,
+			struct gip_header *hdr, void *data)
+{
+	u32 len = hdr->packet_length;
+	u32 remaining = len;
+	int err;
+
+	/* packet fits into single buffer */
+	if (len <= GIP_PKT_MAX_LENGTH)
+		return gip_send_pkt_simple(client, hdr, data);
+
+	hdr->options |= GIP_OPT_ACKNOWLEDGE | GIP_OPT_CHUNK_START |
+			GIP_OPT_CHUNK;
+	hdr->chunk_offset = len;
+
+	while (remaining) {
+		/* acknowledge last packet */
+		if (remaining <= GIP_PKT_MAX_LENGTH)
+			hdr->options |= GIP_OPT_ACKNOWLEDGE;
+
+		hdr->packet_length = min_t(u32, remaining, GIP_PKT_MAX_LENGTH);
+
+		err = gip_send_pkt_simple(client, hdr, data);
+		if (err)
+			return err;
+
+		data += hdr->packet_length;
+		remaining -= hdr->packet_length;
+
+		hdr->options &= ~(GIP_OPT_ACKNOWLEDGE | GIP_OPT_CHUNK_START);
+		hdr->chunk_offset = len - remaining;
+	}
+
+	hdr->packet_length = 0;
+	hdr->chunk_offset = len;
+
+	/* send chunk completion */
+	return gip_send_pkt_simple(client, hdr, data);
 }
 
 static int gip_acknowledge_pkt(struct gip_client *client,
@@ -385,20 +423,20 @@ int gip_set_power_mode(struct gip_client *client, enum gip_power_mode mode)
 }
 EXPORT_SYMBOL_GPL(gip_set_power_mode);
 
-int gip_complete_authentication(struct gip_client *client)
+int gip_send_authenticate(struct gip_client *client, void *pkt, u32 len,
+			  bool acknowledge)
 {
 	struct gip_header hdr = {};
-	struct gip_pkt_authenticate pkt = {};
 
 	hdr.command = GIP_CMD_AUTHENTICATE;
 	hdr.options = client->id | GIP_OPT_INTERNAL;
-	hdr.packet_length = sizeof(pkt);
+	hdr.packet_length = len;
 
-	pkt.unknown1 = 0x01;
+	if (acknowledge)
+		hdr.options |= GIP_OPT_ACKNOWLEDGE;
 
-	return gip_send_pkt(client, &hdr, &pkt);
+	return gip_send_pkt(client, &hdr, pkt);
 }
-EXPORT_SYMBOL_GPL(gip_complete_authentication);
 
 static int gip_set_audio_format_chat(struct gip_client *client,
 				     enum gip_audio_format_chat in_out)
@@ -579,6 +617,21 @@ bool gip_has_interface(struct gip_client *client, const guid_t *guid)
 	return false;
 }
 EXPORT_SYMBOL_GPL(gip_has_interface);
+
+int gip_set_encryption_key(struct gip_client *client, u8 *key, int len)
+{
+	struct gip_adapter *adap = client->adapter;
+	int err;
+
+	if (!adap->ops->set_encryption_key)
+		return 0;
+
+	err = adap->ops->set_encryption_key(adap, key, len);
+	if (err)
+		gip_err(client, "%s: set key failed: %d\n", __func__, err);
+
+	return err;
+}
 
 int gip_enable_audio(struct gip_client *client)
 {
@@ -1048,6 +1101,22 @@ err_free_info:
 	return err;
 }
 
+static int gip_handle_pkt_authenticate(struct gip_client *client,
+				       void *data, u32 len)
+{
+	int err = 0;
+
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
+
+	if (client->drv && client->drv->ops.authenticate)
+		err = client->drv->ops.authenticate(client, data, len);
+
+	up(&client->drv_lock);
+
+	return err;
+}
+
 static int gip_handle_pkt_virtual_key(struct gip_client *client,
 				      void *data, u32 len)
 {
@@ -1276,6 +1345,8 @@ static int gip_dispatch_pkt(struct gip_client *client,
 			return gip_handle_pkt_status(client, data, len);
 		case GIP_CMD_IDENTIFY:
 			return gip_handle_pkt_identify(client, data, len);
+		case GIP_CMD_AUTHENTICATE:
+			return gip_handle_pkt_authenticate(client, data, len);
 		case GIP_CMD_VIRTUAL_KEY:
 			return gip_handle_pkt_virtual_key(client, data, len);
 		case GIP_CMD_AUDIO_CONTROL:
@@ -1331,6 +1402,10 @@ static int gip_process_pkt_chunked(struct gip_client *client,
 		__func__, hdr->chunk_offset, hdr->packet_length);
 
 	if (!buf) {
+		/* older gamepads occasionally send spurious completions */
+		if (!hdr->packet_length)
+			return 0;
+
 		gip_err(client, "%s: buffer not allocated\n", __func__);
 		return -EPROTO;
 	}

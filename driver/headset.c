@@ -10,6 +10,7 @@
 #include <sound/pcm.h>
 
 #include "common.h"
+#include "../auth/auth.h"
 
 #define GIP_HS_NAME "Microsoft X-Box One headset"
 
@@ -34,6 +35,7 @@ static const struct snd_pcm_hardware gip_headset_pcm_hw = {
 struct gip_headset {
 	struct gip_client *client;
 	struct gip_battery battery;
+	struct gip_auth auth;
 
 	bool chat_headset;
 
@@ -353,8 +355,15 @@ static void gip_headset_power_on(struct work_struct *work)
 		return;
 
 	err = gip_init_battery(&headset->battery, client, GIP_HS_NAME);
-	if (err)
+	if (err) {
 		dev_err(&client->dev, "%s: init battery failed: %d\n",
+			__func__, err);
+		return;
+	}
+
+	err = gip_auth_start_handshake(&headset->auth, client);
+	if (err)
+		dev_err(&client->dev, "%s: start handshake failed: %d\n",
 			__func__, err);
 }
 
@@ -399,6 +408,14 @@ static int gip_headset_op_battery(struct gip_client *client,
 	gip_report_battery(&headset->battery, type, level);
 
 	return 0;
+}
+
+static int gip_headset_op_authenticate(struct gip_client *client,
+				       void *data, u32 len)
+{
+	struct gip_headset *headset = dev_get_drvdata(&client->dev);
+
+	return gip_auth_process_pkt(&headset->auth, data, len);
 }
 
 static int gip_headset_op_audio_ready(struct gip_client *client)
@@ -513,6 +530,7 @@ static struct gip_driver gip_headset_driver = {
 	.class = "Windows.Xbox.Input.Headset",
 	.ops = {
 		.battery = gip_headset_op_battery,
+		.authenticate = gip_headset_op_authenticate,
 		.audio_ready = gip_headset_op_audio_ready,
 		.audio_volume = gip_headset_op_audio_volume,
 		.audio_samples = gip_headset_op_audio_samples,

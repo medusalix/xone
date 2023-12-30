@@ -30,6 +30,8 @@
 #define XONE_MT_CH_5G_LOW 0x01
 #define XONE_MT_CH_5G_HIGH 0x02
 
+#define XONE_MT_WCID_KEY_LEN 16
+
 /* commands specific to the dongle's firmware */
 enum xone_mt76_ms_command {
 	XONE_MT_SET_MAC_ADDRESS = 0x00,
@@ -248,6 +250,30 @@ static int xone_mt76_send_wlan(struct xone_mt76 *mt, struct sk_buff *skb)
 	consume_skb(skb);
 
 	return err;
+}
+
+static int xone_mt76_send_reserved(struct xone_mt76 *mt, u8 *addr,
+				   u8 *data, int len)
+{
+	struct sk_buff *skb;
+	struct ieee80211_hdr_3addr hdr = {};
+
+	skb = xone_mt76_alloc_message(sizeof(struct mt76_txwi) + sizeof(hdr) +
+				      len, GFP_KERNEL);
+	if (!skb)
+		return -ENOMEM;
+
+	hdr.frame_control = cpu_to_le16(IEEE80211_FTYPE_MGMT |
+					XONE_MT_WLAN_RESERVED);
+	memcpy(hdr.addr1, addr, ETH_ALEN);
+	memcpy(hdr.addr2, mt->address, ETH_ALEN);
+	memcpy(hdr.addr3, mt->address, ETH_ALEN);
+
+	skb_reserve(skb, sizeof(struct mt76_txwi));
+	skb_put_data(skb, &hdr, sizeof(hdr));
+	skb_put_data(skb, data, sizeof(data));
+
+	return xone_mt76_send_wlan(mt, skb);
 }
 
 static int xone_mt76_select_function(struct xone_mt76 *mt,
@@ -1065,29 +1091,12 @@ int xone_mt76_set_pairing(struct xone_mt76 *mt, bool enable)
 
 int xone_mt76_pair_client(struct xone_mt76 *mt, u8 *addr)
 {
-	struct sk_buff *skb;
-	struct ieee80211_hdr_3addr hdr = {};
 	u8 data[] = {
 		0x70, 0x02, 0x00, 0x45, 0x55, 0x01, 0x0f, 0x8f,
 		0xff, 0x87, 0x1f,
 	};
 
-	skb = xone_mt76_alloc_message(sizeof(struct mt76_txwi) + sizeof(hdr) +
-				      sizeof(data), GFP_KERNEL);
-	if (!skb)
-		return -ENOMEM;
-
-	hdr.frame_control = cpu_to_le16(IEEE80211_FTYPE_MGMT |
-					XONE_MT_WLAN_RESERVED);
-	memcpy(hdr.addr1, addr, ETH_ALEN);
-	memcpy(hdr.addr2, mt->address, ETH_ALEN);
-	memcpy(hdr.addr3, mt->address, ETH_ALEN);
-
-	skb_reserve(skb, sizeof(struct mt76_txwi));
-	skb_put_data(skb, &hdr, sizeof(hdr));
-	skb_put_data(skb, data, sizeof(data));
-
-	return xone_mt76_send_wlan(mt, skb);
+	return xone_mt76_send_reserved(mt, addr, data, sizeof(data));
 }
 
 int xone_mt76_associate_client(struct xone_mt76 *mt, u8 wcid, u8 *addr)
@@ -1135,10 +1144,44 @@ err_free_skb:
 	return err;
 }
 
+int xone_mt76_set_client_key(struct xone_mt76 *mt, u8 wcid, u8 *key, int len)
+{
+	u8 iv[] = { 0x01, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00 };
+	__le32 attr = cpu_to_le32(FIELD_PREP(MT_WCID_ATTR_PKEY_MODE,
+					     MT_CIPHER_AES_CCMP) |
+				  MT_WCID_ATTR_PAIRWISE);
+	int err;
+
+	if (len != XONE_MT_WCID_KEY_LEN)
+		return -EINVAL;
+
+	err = xone_mt76_write_burst(mt, MT_WCID_KEY(wcid), key, len);
+	if (err)
+		return err;
+
+	err = xone_mt76_write_burst(mt, MT_WCID_IV(wcid), iv, sizeof(iv));
+	if (err)
+		return err;
+
+	return xone_mt76_write_burst(mt, MT_WCID_ATTR(wcid),
+				     &attr, sizeof(attr));
+}
+
+int xone_mt76_enable_client_encryption(struct xone_mt76 *mt, u8 *addr)
+{
+	u8 data[] = { 0x70, 0x10 };
+
+	/* enable encryption on client side */
+	return xone_mt76_send_reserved(mt, addr, data, sizeof(data));
+}
+
 int xone_mt76_remove_client(struct xone_mt76 *mt, u8 wcid)
 {
 	u8 data[] = { wcid - 1, 0x00, 0x00, 0x00 };
 	u8 addr[ETH_ALEN] = {};
+	u8 iv[8] = {};
+	u32 attr = 0;
+	u8 key[XONE_MT_WCID_KEY_LEN] = {};
 	int err;
 
 	err = xone_mt76_send_ms_command(mt, XONE_MT_REMOVE_CLIENT,
@@ -1146,5 +1189,18 @@ int xone_mt76_remove_client(struct xone_mt76 *mt, u8 wcid)
 	if (err)
 		return err;
 
-	return xone_mt76_write_burst(mt, MT_WCID_ADDR(wcid), addr, ETH_ALEN);
+	err = xone_mt76_write_burst(mt, MT_WCID_ADDR(wcid), addr, sizeof(addr));
+	if (err)
+		return err;
+
+	err = xone_mt76_write_burst(mt, MT_WCID_IV(wcid), iv, sizeof(iv));
+	if (err)
+		return err;
+
+	err = xone_mt76_write_burst(mt, MT_WCID_ATTR(wcid),
+				    &attr, sizeof(attr));
+	if (err)
+		return err;
+
+	return xone_mt76_write_burst(mt, MT_WCID_KEY(wcid), key, sizeof(key));
 }
