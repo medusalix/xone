@@ -10,13 +10,6 @@
 /* time between audio packets in ms */
 #define GIP_AUDIO_INTERVAL 8
 
-enum gip_client_state {
-	GIP_CL_CONNECTED,
-	GIP_CL_ANNOUNCED,
-	GIP_CL_IDENTIFIED,
-	GIP_CL_DISCONNECTED,
-};
-
 enum gip_battery_type {
 	GIP_BATT_TYPE_NONE = 0x00,
 	GIP_BATT_TYPE_STANDARD = 0x01,

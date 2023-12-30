@@ -938,7 +938,7 @@ static int gip_handle_pkt_announce(struct gip_client *client,
 	if (len != sizeof(*pkt))
 		return -EINVAL;
 
-	if (atomic_read(&client->state) != GIP_CL_CONNECTED) {
+	if (hw->vendor || hw->product || hw->version) {
 		gip_warn(client, "%s: already announced\n", __func__);
 		return 0;
 	}
@@ -961,8 +961,6 @@ static int gip_handle_pkt_announce(struct gip_client *client,
 		le16_to_cpu(pkt->hw_version.build),
 		le16_to_cpu(pkt->hw_version.revision));
 
-	atomic_set(&client->state, GIP_CL_ANNOUNCED);
-
 	return gip_request_identification(client);
 }
 
@@ -970,23 +968,31 @@ static int gip_handle_pkt_status(struct gip_client *client,
 				 void *data, u32 len)
 {
 	struct gip_pkt_status *pkt = data;
+	int err = 0;
+	u8 batt_type, batt_lvl;
 
 	/* some devices occasionally send larger status packets */
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
 	if (!(pkt->status & GIP_STATUS_CONNECTED)) {
-		/* schedule client removal */
 		gip_dbg(client, "%s: disconnected\n", __func__);
+		gip_remove_client(client);
 		return 0;
 	}
 
-	if (!client->drv || !client->drv->ops.battery)
-		return 0;
+	batt_type = FIELD_GET(GIP_BATT_TYPE, pkt->status);
+	batt_lvl = FIELD_GET(GIP_BATT_LEVEL, pkt->status);
 
-	return client->drv->ops.battery(client,
-					FIELD_GET(GIP_BATT_TYPE, pkt->status),
-					FIELD_GET(GIP_BATT_LEVEL, pkt->status));
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
+
+	if (client->drv && client->drv->ops.battery)
+		err = client->drv->ops.battery(client, batt_type, batt_lvl);
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_handle_pkt_identify(struct gip_client *client,
@@ -998,7 +1004,7 @@ static int gip_handle_pkt_identify(struct gip_client *client,
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
-	if (atomic_read(&client->state) != GIP_CL_ANNOUNCED) {
+	if (client->classes) {
 		gip_warn(client, "%s: already identified\n", __func__);
 		return 0;
 	}
@@ -1035,8 +1041,7 @@ static int gip_handle_pkt_identify(struct gip_client *client,
 	if (err)
 		goto err_free_info;
 
-	/* schedule client registration */
-	gip_register_client(client);
+	gip_add_client(client);
 
 	return 0;
 
@@ -1050,6 +1055,7 @@ static int gip_handle_pkt_virtual_key(struct gip_client *client,
 				      void *data, u32 len)
 {
 	struct gip_pkt_virtual_key *pkt = data;
+	int err = 0;
 
 	if (len != sizeof(*pkt))
 		return -EINVAL;
@@ -1057,10 +1063,15 @@ static int gip_handle_pkt_virtual_key(struct gip_client *client,
 	if (pkt->key != GIP_VKEY_LEFT_WIN)
 		return -EINVAL;
 
-	if (!client->drv || !client->drv->ops.guide_button)
-		return 0;
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
 
-	return client->drv->ops.guide_button(client, pkt->down);
+	if (client->drv && client->drv->ops.guide_button)
+		err = client->drv->ops.guide_button(client, pkt->down);
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_handle_pkt_audio_format_chat(struct gip_client *client,
@@ -1086,24 +1097,35 @@ static int gip_handle_pkt_audio_format_chat(struct gip_client *client,
 	if (err)
 		return err;
 
-	if (!client->drv || !client->drv->ops.audio_ready)
-		return 0;
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
 
-	return client->drv->ops.audio_ready(client);
+	if (client->drv && client->drv->ops.audio_ready)
+		err = client->drv->ops.audio_ready(client);
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_handle_pkt_audio_volume_chat(struct gip_client *client,
 					    void *data, u32 len)
 {
 	struct gip_pkt_audio_volume_chat *pkt = data;
+	int err = 0;
 
 	if (len != sizeof(*pkt))
 		return -EINVAL;
 
-	if (!client->drv || !client->drv->ops.audio_volume)
-		return 0;
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
 
-	return client->drv->ops.audio_volume(client, pkt->in, pkt->out);
+	if (client->drv && client->drv->ops.audio_volume)
+		err = client->drv->ops.audio_volume(client, pkt->in, pkt->out);
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_handle_pkt_audio_format(struct gip_client *client,
@@ -1136,24 +1158,35 @@ static int gip_handle_pkt_audio_format(struct gip_client *client,
 	if (err)
 		return err;
 
-	if (!client->drv || !client->drv->ops.audio_ready)
-		return 0;
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
 
-	return client->drv->ops.audio_ready(client);
+	if (client->drv && client->drv->ops.audio_ready)
+		err = client->drv->ops.audio_ready(client);
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_handle_pkt_audio_volume(struct gip_client *client,
 				       void *data, u32 len)
 {
 	struct gip_pkt_audio_volume *pkt = data;
+	int err = 0;
 
 	if (len != sizeof(*pkt))
 		return -EINVAL;
 
-	if (!client->drv || !client->drv->ops.audio_volume)
-		return 0;
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
 
-	return client->drv->ops.audio_volume(client, pkt->in, pkt->out);
+	if (client->drv && client->drv->ops.audio_volume)
+		err = client->drv->ops.audio_volume(client, pkt->in, pkt->out);
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_handle_pkt_audio_control(struct gip_client *client,
@@ -1184,34 +1217,54 @@ static int gip_handle_pkt_audio_control(struct gip_client *client,
 static int gip_handle_pkt_hid_report(struct gip_client *client,
 				     void *data, u32 len)
 {
-	if (!client->drv || !client->drv->ops.hid_report)
-		return 0;
+	int err = 0;
 
-	return client->drv->ops.hid_report(client, data, len);
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
+
+	if (client->drv && client->drv->ops.hid_report)
+		err = client->drv->ops.hid_report(client, data, len);
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_handle_pkt_input(struct gip_client *client,
 				void *data, u32 len)
 {
-	if (!client->drv || !client->drv->ops.input)
-		return 0;
+	int err = 0;
 
-	return client->drv->ops.input(client, data, len);
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
+
+	if (client->drv && client->drv->ops.input)
+		err = client->drv->ops.input(client, data, len);
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_handle_pkt_audio_samples(struct gip_client *client,
 					void *data, u32 len)
 {
 	struct gip_pkt_audio_samples *pkt = data;
+	int err = 0;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
-	if (!client->drv || !client->drv->ops.audio_samples)
-		return 0;
+	if (down_trylock(&client->drv_lock))
+		return -EBUSY;
 
-	return client->drv->ops.audio_samples(client, pkt->samples,
-					      len - sizeof(*pkt));
+	if (client->drv && client->drv->ops.audio_samples)
+		err = client->drv->ops.audio_samples(client, pkt->samples,
+						     len - sizeof(*pkt));
+
+	up(&client->drv_lock);
+
+	return err;
 }
 
 static int gip_dispatch_pkt(struct gip_client *client,
@@ -1329,32 +1382,10 @@ static int gip_process_pkt(struct gip_client *client,
 	return gip_dispatch_pkt(client, hdr, data, hdr->packet_length);
 }
 
-static int gip_process_adapter_pkt(struct gip_adapter *adap,
-				   struct gip_header *hdr, void *data)
-{
-	struct gip_client *client;
-	u8 id = hdr->options & GIP_HDR_CLIENT_ID;
-	int err = 0;
-	unsigned long flags;
-
-	client = gip_get_or_init_client(adap, id);
-	if (IS_ERR(client))
-		return PTR_ERR(client);
-
-	spin_lock_irqsave(&client->lock, flags);
-
-	if (atomic_read(&client->state) != GIP_CL_DISCONNECTED)
-		err = gip_process_pkt(client, hdr, data);
-
-	spin_unlock_irqrestore(&client->lock, flags);
-	gip_put_client(client);
-
-	return err;
-}
-
 int gip_process_buffer(struct gip_adapter *adap, void *data, int len)
 {
 	struct gip_header hdr;
+	struct gip_client *client;
 	int hdr_len, err;
 
 	while (len > GIP_HDR_MIN_LENGTH) {
@@ -1362,7 +1393,11 @@ int gip_process_buffer(struct gip_adapter *adap, void *data, int len)
 		if (len < hdr_len + hdr.packet_length)
 			return -EINVAL;
 
-		err = gip_process_adapter_pkt(adap, &hdr, data + hdr_len);
+		client = gip_get_client(adap, hdr.options & GIP_HDR_CLIENT_ID);
+		if (IS_ERR(client))
+			return PTR_ERR(client);
+
+		err = gip_process_pkt(client, &hdr, data + hdr_len);
 		if (err)
 			return err;
 
