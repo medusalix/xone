@@ -24,6 +24,10 @@
 
 #define GIP_VKEY_LEFT_WIN 0x5b
 
+#define gip_dbg(client, ...) dev_dbg(&(client)->adapter->dev, __VA_ARGS__)
+#define gip_warn(client, ...) dev_warn(&(client)->adapter->dev, __VA_ARGS__)
+#define gip_err(client, ...) dev_err(&(client)->adapter->dev, __VA_ARGS__)
+
 enum gip_command_internal {
 	GIP_CMD_ACKNOWLEDGE = 0x01,
 	GIP_CMD_ANNOUNCE = 0x02,
@@ -305,8 +309,7 @@ static int gip_send_pkt(struct gip_client *client,
 
 	err = adap->ops->get_buffer(adap, &buf);
 	if (err) {
-		dev_err(&client->dev, "%s: get buffer failed: %d\n",
-			__func__, err);
+		gip_err(client, "%s: get buffer failed: %d\n", __func__, err);
 		goto err_unlock;
 	}
 
@@ -330,7 +333,7 @@ static int gip_send_pkt(struct gip_client *client,
 	/* always fails on adapter removal */
 	err = adap->ops->submit_buffer(adap, &buf);
 	if (err)
-		dev_dbg(&client->dev, "%s: submit buffer failed: %d\n",
+		gip_dbg(client, "%s: submit buffer failed: %d\n",
 			__func__, err);
 
 err_unlock:
@@ -451,8 +454,7 @@ int gip_suggest_audio_format(struct gip_client *client,
 		err = gip_set_audio_format(client, in, out);
 
 	if (err) {
-		dev_err(&client->dev, "%s: set format failed: %d\n",
-			__func__, err);
+		gip_err(client, "%s: set format failed: %d\n", __func__, err);
 		return err;
 	}
 
@@ -562,8 +564,7 @@ int gip_send_audio_samples(struct gip_client *client, void *samples)
 	/* returns ENOSPC if no buffer is available */
 	err = adap->ops->get_buffer(adap, &buf);
 	if (err) {
-		dev_err(&client->dev, "%s: get buffer failed: %d\n",
-			__func__, err);
+		gip_err(client, "%s: get buffer failed: %d\n", __func__, err);
 		return err;
 	}
 
@@ -576,7 +577,7 @@ int gip_send_audio_samples(struct gip_client *client, void *samples)
 	/* always fails on adapter removal */
 	err = adap->ops->submit_buffer(adap, &buf);
 	if (err)
-		dev_dbg(&client->dev, "%s: submit buffer failed: %d\n",
+		gip_dbg(client, "%s: submit buffer failed: %d\n",
 			__func__, err);
 
 	return err;
@@ -593,8 +594,7 @@ int gip_enable_audio(struct gip_client *client)
 
 	err = adap->ops->enable_audio(adap);
 	if (err)
-		dev_err(&client->dev, "%s: enable failed: %d\n",
-			__func__, err);
+		gip_err(client, "%s: enable failed: %d\n", __func__, err);
 
 	return err;
 }
@@ -610,7 +610,7 @@ int gip_init_audio_in(struct gip_client *client)
 
 	err = adap->ops->init_audio_in(adap);
 	if (err)
-		dev_err(&client->dev, "%s: init failed: %d\n", __func__, err);
+		gip_err(client, "%s: init failed: %d\n", __func__, err);
 
 	return err;
 }
@@ -627,7 +627,7 @@ int gip_init_audio_out(struct gip_client *client)
 	err = adap->ops->init_audio_out(adap,
 					client->audio_config_out.packet_size);
 	if (err)
-		dev_err(&client->dev, "%s: init failed: %d\n", __func__, err);
+		gip_err(client, "%s: init failed: %d\n", __func__, err);
 
 	return err;
 }
@@ -644,8 +644,7 @@ void gip_disable_audio(struct gip_client *client)
 	/* always fails on adapter removal */
 	err = adap->ops->disable_audio(adap);
 	if (err)
-		dev_dbg(&client->dev, "%s: disable failed: %d\n",
-			__func__, err);
+		gip_dbg(client, "%s: disable failed: %d\n", __func__, err);
 }
 EXPORT_SYMBOL_GPL(gip_disable_audio);
 
@@ -664,7 +663,7 @@ static int gip_make_audio_config(struct gip_client *client,
 		cfg->sample_rate = 48000;
 		break;
 	default:
-		dev_err(&client->dev, "%s: unknown format: 0x%02x\n",
+		gip_err(client, "%s: unknown format: 0x%02x\n",
 			__func__, cfg->format);
 		return -ENOTSUPP;
 	}
@@ -679,7 +678,7 @@ static int gip_make_audio_config(struct gip_client *client,
 	cfg->packet_size = gip_get_header_length(&hdr) + cfg->fragment_size;
 	cfg->valid = true;
 
-	dev_dbg(&client->dev, "%s: rate=%d/%d, buffer=%d\n", __func__,
+	gip_dbg(client, "%s: rate=%d/%d, buffer=%d\n", __func__,
 		cfg->sample_rate, cfg->channels, cfg->buffer_size);
 
 	return 0;
@@ -732,14 +731,14 @@ static int gip_parse_external_commands(struct gip_client *client,
 		if (PTR_ERR(cmds) == -ENOTSUPP)
 			return 0;
 
-		dev_err(&client->dev, "%s: parse failed: %ld\n",
+		gip_err(client, "%s: parse failed: %ld\n",
 			__func__, PTR_ERR(cmds));
 		return PTR_ERR(cmds);
 	}
 
 	for (i = 0; i < cmds->count; i++) {
 		desc = (struct gip_command_descriptor *)cmds->data + i;
-		dev_dbg(&client->dev,
+		gip_dbg(client,
 			"%s: command=0x%02x, length=0x%02x, options=0x%02x\n",
 			__func__, desc->command, desc->length, desc->options);
 	}
@@ -760,14 +759,14 @@ static int gip_parse_firmware_versions(struct gip_client *client,
 	vers = gip_parse_info_element(data, len, pkt->firmware_versions_offset,
 				      sizeof(*ver));
 	if (IS_ERR(vers)) {
-		dev_err(&client->dev, "%s: parse failed: %ld\n",
+		gip_err(client, "%s: parse failed: %ld\n",
 			__func__, PTR_ERR(vers));
 		return PTR_ERR(vers);
 	}
 
 	for (i = 0; i < vers->count; i++) {
 		ver = (struct gip_firmware_version *)vers->data + i;
-		dev_dbg(&client->dev, "%s: version=%u.%u\n", __func__,
+		gip_dbg(client, "%s: version=%u.%u\n", __func__,
 			le16_to_cpu(ver->major), le16_to_cpu(ver->minor));
 	}
 
@@ -788,12 +787,12 @@ static int gip_parse_audio_formats(struct gip_client *client,
 		if (PTR_ERR(fmts) == -ENOTSUPP)
 			return 0;
 
-		dev_err(&client->dev, "%s: parse failed: %ld\n",
+		gip_err(client, "%s: parse failed: %ld\n",
 			__func__, PTR_ERR(fmts));
 		return PTR_ERR(fmts);
 	}
 
-	dev_dbg(&client->dev, "%s: formats=%*phD\n", __func__,
+	gip_dbg(client, "%s: formats=%*phD\n", __func__,
 		fmts->count * 2, fmts->data);
 	client->audio_formats = fmts;
 
@@ -809,25 +808,23 @@ static int gip_parse_capabilities(struct gip_client *client,
 	caps = gip_parse_info_element(data, len,
 				      pkt->capabilities_out_offset, 1);
 	if (IS_ERR(caps)) {
-		dev_err(&client->dev, "%s: parse out failed: %ld\n",
+		gip_err(client, "%s: parse out failed: %ld\n",
 			__func__, PTR_ERR(caps));
 		return PTR_ERR(caps);
 	}
 
-	dev_dbg(&client->dev, "%s: out=%*phD\n", __func__,
-		caps->count, caps->data);
+	gip_dbg(client, "%s: out=%*phD\n", __func__, caps->count, caps->data);
 	client->capabilities_out = caps;
 
 	caps = gip_parse_info_element(data, len,
 				      pkt->capabilities_in_offset, 1);
 	if (IS_ERR(caps)) {
-		dev_err(&client->dev, "%s: parse in failed: %ld\n",
+		gip_err(client, "%s: parse in failed: %ld\n",
 			__func__, PTR_ERR(caps));
 		return PTR_ERR(caps);
 	}
 
-	dev_dbg(&client->dev, "%s: in=%*phD\n", __func__,
-		caps->count, caps->data);
+	gip_dbg(client, "%s: in=%*phD\n", __func__, caps->count, caps->data);
 	client->capabilities_in = caps;
 
 	return 0;
@@ -877,7 +874,7 @@ static int gip_parse_classes(struct gip_client *client,
 		classes->count++;
 		off += str_len;
 
-		dev_dbg(&client->dev, "%s: class=%s\n", __func__, str);
+		gip_dbg(client, "%s: class=%s\n", __func__, str);
 	}
 
 	return 0;
@@ -894,14 +891,14 @@ static int gip_parse_interfaces(struct gip_client *client,
 	intfs = gip_parse_info_element(data, len, pkt->interfaces_offset,
 				       sizeof(guid_t));
 	if (IS_ERR(intfs)) {
-		dev_err(&client->dev, "%s: parse failed: %ld\n",
+		gip_err(client, "%s: parse failed: %ld\n",
 			__func__, PTR_ERR(intfs));
 		return PTR_ERR(intfs);
 	}
 
 	for (i = 0; i < intfs->count; i++) {
 		guid = (guid_t *)intfs->data + i;
-		dev_dbg(&client->dev, "%s: guid=%pUb\n", __func__, guid);
+		gip_dbg(client, "%s: guid=%pUb\n", __func__, guid);
 	}
 
 	client->interfaces = intfs;
@@ -921,12 +918,12 @@ static int gip_parse_hid_descriptor(struct gip_client *client,
 		if (PTR_ERR(desc) == -ENOTSUPP)
 			return 0;
 
-		dev_err(&client->dev, "%s: parse failed: %ld\n",
+		gip_err(client, "%s: parse failed: %ld\n",
 			__func__, PTR_ERR(desc));
 		return PTR_ERR(desc);
 	}
 
-	dev_dbg(&client->dev, "%s: length=0x%02x\n", __func__, desc->count);
+	gip_dbg(client, "%s: length=0x%02x\n", __func__, desc->count);
 	client->hid_descriptor = desc;
 
 	return 0;
@@ -942,7 +939,7 @@ static int gip_handle_pkt_announce(struct gip_client *client,
 		return -EINVAL;
 
 	if (atomic_read(&client->state) != GIP_CL_CONNECTED) {
-		dev_warn(&client->dev, "%s: invalid state\n", __func__);
+		gip_warn(client, "%s: already announced\n", __func__);
 		return 0;
 	}
 
@@ -951,11 +948,9 @@ static int gip_handle_pkt_announce(struct gip_client *client,
 	hw->version = (le16_to_cpu(pkt->fw_version.major) << 8) |
 		      le16_to_cpu(pkt->fw_version.minor);
 
-	dev_dbg(&client->dev,
-		"%s: address=%pM, vendor=0x%04x, product=0x%04x\n",
+	gip_dbg(client, "%s: address=%pM, vendor=0x%04x, product=0x%04x\n",
 		__func__, pkt->address, hw->vendor, hw->product);
-	dev_dbg(&client->dev,
-		"%s: firmware=%u.%u.%u.%u, hardware=%u.%u.%u.%u\n",
+	gip_dbg(client, "%s: firmware=%u.%u.%u.%u, hardware=%u.%u.%u.%u\n",
 		__func__,
 		le16_to_cpu(pkt->fw_version.major),
 		le16_to_cpu(pkt->fw_version.minor),
@@ -982,8 +977,7 @@ static int gip_handle_pkt_status(struct gip_client *client,
 
 	if (!(pkt->status & GIP_STATUS_CONNECTED)) {
 		/* schedule client removal */
-		dev_dbg(&client->dev, "%s: disconnected\n", __func__);
-		gip_unregister_client(client);
+		gip_dbg(client, "%s: disconnected\n", __func__);
 		return 0;
 	}
 
@@ -1005,7 +999,7 @@ static int gip_handle_pkt_identify(struct gip_client *client,
 		return -EINVAL;
 
 	if (atomic_read(&client->state) != GIP_CL_ANNOUNCED) {
-		dev_warn(&client->dev, "%s: invalid state\n", __func__);
+		gip_warn(client, "%s: already identified\n", __func__);
 		return 0;
 	}
 
@@ -1129,7 +1123,7 @@ static int gip_handle_pkt_audio_format(struct gip_client *client,
 
 	/* client rejected format, accept new format */
 	if (pkt->in != in->format || pkt->out != out->format) {
-		dev_warn(&client->dev, "%s: rejected: 0x%02x/0x%02x\n",
+		gip_warn(client, "%s: rejected: 0x%02x/0x%02x\n",
 			 __func__, in->format, out->format);
 		return gip_suggest_audio_format(client, pkt->in, pkt->out);
 	}
@@ -1181,7 +1175,7 @@ static int gip_handle_pkt_audio_control(struct gip_client *client,
 		return gip_handle_pkt_audio_volume(client, data, len);
 	}
 
-	dev_err(&client->dev, "%s: unknown subcommand: 0x%02x\n",
+	gip_err(client, "%s: unknown subcommand: 0x%02x\n",
 		__func__, pkt->subcommand);
 
 	return -EPROTO;
@@ -1260,7 +1254,7 @@ static int gip_init_chunk_buffer(struct gip_client *client, u32 len)
 		return -EINVAL;
 
 	if (buf) {
-		dev_err(&client->dev, "%s: already initialized\n", __func__);
+		gip_err(client, "%s: already initialized\n", __func__);
 		kfree(buf);
 		client->chunk_buf = NULL;
 	}
@@ -1269,7 +1263,7 @@ static int gip_init_chunk_buffer(struct gip_client *client, u32 len)
 	if (!buf)
 		return -ENOMEM;
 
-	dev_dbg(&client->dev, "%s: length=0x%04x\n", __func__, len);
+	gip_dbg(client, "%s: length=0x%04x\n", __func__, len);
 	buf->length = len;
 	client->chunk_buf = buf;
 
@@ -1282,16 +1276,16 @@ static int gip_process_pkt_chunked(struct gip_client *client,
 	struct gip_chunk_buffer *buf = client->chunk_buf;
 	int err;
 
-	dev_dbg(&client->dev, "%s: offset=0x%04x, length=0x%04x\n",
+	gip_dbg(client, "%s: offset=0x%04x, length=0x%04x\n",
 		__func__, hdr->chunk_offset, hdr->packet_length);
 
 	if (!buf) {
-		dev_err(&client->dev, "%s: buffer not allocated\n", __func__);
+		gip_err(client, "%s: buffer not allocated\n", __func__);
 		return -EPROTO;
 	}
 
 	if (buf->length < hdr->chunk_offset + hdr->packet_length) {
-		dev_err(&client->dev, "%s: buffer too small\n", __func__);
+		gip_err(client, "%s: buffer too small\n", __func__);
 		return -EINVAL;
 	}
 
