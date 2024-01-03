@@ -9,7 +9,7 @@
 #include <sound/initval.h>
 #include <sound/pcm.h>
 
-#include "../bus/bus.h"
+#include "common.h"
 
 #define GIP_HS_NAME "Microsoft X-Box One headset"
 
@@ -33,6 +33,7 @@ static const struct snd_pcm_hardware gip_headset_pcm_hw = {
 
 struct gip_headset {
 	struct gip_client *client;
+	struct gip_battery battery;
 
 	bool chat_headset;
 
@@ -341,8 +342,19 @@ static void gip_headset_power_on(struct work_struct *work)
 	int err;
 
 	err = gip_set_power_mode(client, GIP_PWR_ON);
-	if (err)
+	if (err) {
 		dev_err(&client->dev, "%s: set power mode failed: %d\n",
+			__func__, err);
+		return;
+	}
+
+	/* not a standalone headset */
+	if (client->id)
+		return;
+
+	err = gip_init_battery(&headset->battery, client, GIP_HS_NAME);
+	if (err)
+		dev_err(&client->dev, "%s: init battery failed: %d\n",
 			__func__, err);
 }
 
@@ -376,6 +388,17 @@ static void gip_headset_register(struct work_struct *work)
 err_free_card:
 	snd_card_free(headset->card);
 	headset->card = NULL;
+}
+
+static int gip_headset_op_battery(struct gip_client *client,
+				  enum gip_battery_type type,
+				  enum gip_battery_level level)
+{
+	struct gip_headset *headset = dev_get_drvdata(&client->dev);
+
+	gip_report_battery(&headset->battery, type, level);
+
+	return 0;
 }
 
 static int gip_headset_op_audio_ready(struct gip_client *client)
@@ -489,6 +512,7 @@ static struct gip_driver gip_headset_driver = {
 	.name = "xone-gip-headset",
 	.class = "Windows.Xbox.Input.Headset",
 	.ops = {
+		.battery = gip_headset_op_battery,
 		.audio_ready = gip_headset_op_audio_ready,
 		.audio_volume = gip_headset_op_audio_volume,
 		.audio_samples = gip_headset_op_audio_samples,
