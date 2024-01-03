@@ -31,6 +31,7 @@ enum gip_power_mode {
 };
 
 enum gip_audio_format {
+	GIP_AUD_FORMAT_16KHZ_MONO = 0x05,
 	GIP_AUD_FORMAT_24KHZ_MONO = 0x09,
 	GIP_AUD_FORMAT_48KHZ_STEREO = 0x10,
 };

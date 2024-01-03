@@ -654,6 +654,10 @@ static int gip_make_audio_config(struct gip_client *client,
 	struct gip_header hdr = {};
 
 	switch (cfg->format) {
+	case GIP_AUD_FORMAT_16KHZ_MONO:
+		cfg->channels = 1;
+		cfg->sample_rate = 16000;
+		break;
 	case GIP_AUD_FORMAT_24KHZ_MONO:
 		cfg->channels = 1;
 		cfg->sample_rate = 24000;
