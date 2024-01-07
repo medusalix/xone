@@ -298,7 +298,7 @@ static int gip_headset_start_audio(struct gip_headset *headset)
 	/* set hardware volume to maximum for headset jack */
 	/* standalone & chat headsets have physical volume controls */
 	if (client->id && !headset->chat_headset) {
-		err = gip_set_audio_volume(client, 100, 100);
+		err = gip_set_audio_volume(client, 100, 50, 100);
 		if (err)
 			return err;
 	}

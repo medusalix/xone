@@ -152,10 +152,10 @@ struct gip_pkt_audio_volume {
 	struct gip_pkt_audio_control control;
 	u8 mute;
 	u8 out;
-	u8 unknown1;
+	u8 chat;
 	u8 in;
-	u8 unknown2;
-	u8 unknown3[2];
+	u8 unknown1;
+	u8 unknown2[2];
 } __packed;
 
 struct gip_pkt_led {
@@ -460,7 +460,7 @@ int gip_suggest_audio_format(struct gip_client *client,
 }
 EXPORT_SYMBOL_GPL(gip_suggest_audio_format);
 
-int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out)
+int gip_set_audio_volume(struct gip_client *client, u8 in, u8 chat, u8 out)
 {
 	struct gip_header hdr = {};
 	struct gip_pkt_audio_volume pkt = {};
@@ -472,6 +472,7 @@ int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out)
 	pkt.control.subcommand = GIP_AUD_CTRL_VOLUME;
 	pkt.mute = GIP_AUD_VOLUME_UNMUTED;
 	pkt.out = out;
+	pkt.chat = chat;
 	pkt.in = in;
 
 	return gip_send_pkt(client, &hdr, &pkt);

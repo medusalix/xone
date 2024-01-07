@@ -96,7 +96,7 @@ int gip_suggest_audio_format(struct gip_client *client,
 			     enum gip_audio_format in,
 			     enum gip_audio_format out,
 			     bool chat);
-int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out);
+int gip_set_audio_volume(struct gip_client *client, u8 in, u8 chat, u8 out);
 int gip_send_rumble(struct gip_client *client, void *pkt, u32 len);
 int gip_set_led_mode(struct gip_client *client,
 		     enum gip_led_mode mode, u8 brightness);
