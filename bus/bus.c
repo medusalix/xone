@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  */
 
 #include <linux/module.h>
@@ -343,6 +343,6 @@ static void __exit gip_bus_exit(void)
 module_init(gip_bus_init);
 module_exit(gip_bus_exit);
 
-MODULE_AUTHOR("Severin von Wnuck <severinvonw@outlook.de>");
+MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone GIP driver");
 MODULE_LICENSE("GPL");

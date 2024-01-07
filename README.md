@@ -136,7 +136,7 @@ Please join the [Discord server](https://discord.gg/FDQxwWk) in case of any othe
 `xone` is released under the [GNU General Public License, Version 2](LICENSE).
 
 ```
-Copyright (C) 2021 Severin von Wnuck
+Copyright (C) 2021 Severin von Wnuck-Lipinski
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

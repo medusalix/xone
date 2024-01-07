@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  */
 
 #include <linux/module.h>
@@ -344,7 +344,7 @@ static struct gip_driver gip_gamepad_driver = {
 module_gip_driver(gip_gamepad_driver);
 
 MODULE_ALIAS("gip:Windows.Xbox.Input.Gamepad");
-MODULE_AUTHOR("Severin von Wnuck <severinvonw@outlook.de>");
+MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone GIP gamepad driver");
 MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");

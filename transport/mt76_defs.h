@@ -2,7 +2,7 @@
 /*
  * Based on code from the open source mt76 driver with minor modifications.
  *
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  *
  * Special thanks to the authors of the mt76 driver:
  *

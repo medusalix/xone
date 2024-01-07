@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  */
 
 #include <linux/module.h>
@@ -574,7 +574,7 @@ static struct usb_driver xone_wired_driver = {
 module_usb_driver(xone_wired_driver);
 
 MODULE_DEVICE_TABLE(usb, xone_wired_id_table);
-MODULE_AUTHOR("Severin von Wnuck <severinvonw@outlook.de>");
+MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone wired driver");
 MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");
