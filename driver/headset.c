@@ -13,6 +13,9 @@
 
 #define GIP_HS_NAME "Microsoft X-Box One headset"
 
+/* product ID for the chat headset */
+#define GIP_HS_PID_CHAT 0x0111
+
 #define GIP_HS_CONFIG_DELAY msecs_to_jiffies(1000)
 #define GIP_HS_POWER_ON_DELAY msecs_to_jiffies(1000)
 
@@ -30,6 +33,8 @@ static const struct snd_pcm_hardware gip_headset_pcm_hw = {
 
 struct gip_headset {
 	struct gip_client *client;
+
+	bool chat_headset;
 
 	struct delayed_work work_config;
 	struct delayed_work work_power_on;
@@ -290,10 +295,13 @@ static int gip_headset_start_audio(struct gip_headset *headset)
 	struct gip_client *client = headset->client;
 	int err;
 
-	/* set headset volume to maximum */
-	err = gip_fix_audio_volume(client);
-	if (err)
-		return err;
+	/* set hardware volume to maximum for headset jack */
+	/* standalone & chat headsets have physical volume controls */
+	if (client->id && !headset->chat_headset) {
+		err = gip_set_audio_volume(client, 100, 100);
+		if (err)
+			return err;
+	}
 
 	err = gip_init_audio_out(client);
 	if (err)
@@ -317,7 +325,8 @@ static void gip_headset_config(struct work_struct *work)
 		fmts->data[0], fmts->data[1]);
 
 	/* suggest initial audio format */
-	err = gip_suggest_audio_format(client, fmts->data[0], fmts->data[1]);
+	err = gip_suggest_audio_format(client, fmts->data[0], fmts->data[1],
+				       headset->chat_headset);
 	if (err)
 		dev_err(&client->dev, "%s: suggest format failed: %d\n",
 			__func__, err);
@@ -432,6 +441,8 @@ static int gip_headset_probe(struct gip_client *client)
 		return -ENOMEM;
 
 	headset->client = client;
+	headset->chat_headset = client->hardware.vendor == GIP_VID_MICROSOFT &&
+				client->hardware.product == GIP_HS_PID_CHAT;
 
 	INIT_DELAYED_WORK(&headset->work_config, gip_headset_config);
 	INIT_DELAYED_WORK(&headset->work_power_on, gip_headset_power_on);

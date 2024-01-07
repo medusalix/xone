@@ -11,8 +11,7 @@
 
 #define GIP_GP_NAME "Microsoft X-Box One pad"
 
-/* vendor/product ID for the elite controller series 2 */
-#define GIP_GP_VID_MICROSOFT 0x045e
+/* product ID for the elite controller series 2 */
 #define GIP_GP_PID_ELITE2 0x0b00
 
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
@@ -155,7 +154,7 @@ static bool gip_gamepad_is_series_xs(struct gip_client *client)
 	int i;
 
 	/* the elite controller also has a middle button */
-	if (hw->vendor == GIP_GP_VID_MICROSOFT &&
+	if (hw->vendor == GIP_VID_MICROSOFT &&
 	    hw->product == GIP_GP_PID_ELITE2)
 		return false;
 

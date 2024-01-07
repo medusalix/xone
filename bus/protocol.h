@@ -7,6 +7,8 @@
 
 #include <linux/types.h>
 
+#define GIP_VID_MICROSOFT 0x045e
+
 /* time between audio packets in ms */
 #define GIP_AUDIO_INTERVAL 8
 
@@ -92,8 +94,9 @@ int gip_set_power_mode(struct gip_client *client, enum gip_power_mode mode);
 int gip_complete_authentication(struct gip_client *client);
 int gip_suggest_audio_format(struct gip_client *client,
 			     enum gip_audio_format in,
-			     enum gip_audio_format out);
-int gip_fix_audio_volume(struct gip_client *client);
+			     enum gip_audio_format out,
+			     bool chat);
+int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out);
 int gip_send_rumble(struct gip_client *client, void *pkt, u32 len);
 int gip_set_led_mode(struct gip_client *client,
 		     enum gip_led_mode mode, u8 brightness);

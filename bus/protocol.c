@@ -9,10 +9,6 @@
 
 #include "bus.h"
 
-/* vendor/product ID for the chat headset */
-#define GIP_VID_MICROSOFT 0x045e
-#define GIP_PID_CHAT_HEADSET 0x0111
-
 #define GIP_HDR_CLIENT_ID GENMASK(3, 0)
 #define GIP_HDR_MIN_LENGTH 3
 
@@ -440,14 +436,13 @@ static int gip_set_audio_format(struct gip_client *client,
 
 int gip_suggest_audio_format(struct gip_client *client,
 			     enum gip_audio_format in,
-			     enum gip_audio_format out)
+			     enum gip_audio_format out,
+			     bool chat)
 {
-	struct gip_hardware *hw = &client->hardware;
 	int err;
 
 	/* special handling for the chat headset */
-	if (hw->vendor == GIP_VID_MICROSOFT &&
-	    hw->product == GIP_PID_CHAT_HEADSET)
+	if (chat)
 		err = gip_set_audio_format_chat(client,
 						GIP_AUD_FORMAT_CHAT_24KHZ);
 	else
@@ -465,7 +460,7 @@ int gip_suggest_audio_format(struct gip_client *client,
 }
 EXPORT_SYMBOL_GPL(gip_suggest_audio_format);
 
-static int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out)
+int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out)
 {
 	struct gip_header hdr = {};
 	struct gip_pkt_audio_volume pkt = {};
@@ -481,20 +476,7 @@ static int gip_set_audio_volume(struct gip_client *client, u8 in, u8 out)
 
 	return gip_send_pkt(client, &hdr, &pkt);
 }
-
-int gip_fix_audio_volume(struct gip_client *client)
-{
-	struct gip_hardware *hw = &client->hardware;
-
-	/* chat headsets have buttons to adjust the hardware volume */
-	if (hw->vendor == GIP_VID_MICROSOFT &&
-	    hw->product == GIP_PID_CHAT_HEADSET)
-		return 0;
-
-	/* set hardware volume to maximum */
-	return gip_set_audio_volume(client, 100, 100);
-}
-EXPORT_SYMBOL_GPL(gip_fix_audio_volume);
+EXPORT_SYMBOL_GPL(gip_set_audio_volume);
 
 int gip_send_rumble(struct gip_client *client, void *pkt, u32 len)
 {
@@ -1151,7 +1133,8 @@ static int gip_handle_pkt_audio_format(struct gip_client *client,
 	if (pkt->in != in->format || pkt->out != out->format) {
 		gip_warn(client, "%s: rejected: 0x%02x/0x%02x\n",
 			 __func__, in->format, out->format);
-		return gip_suggest_audio_format(client, pkt->in, pkt->out);
+		return gip_suggest_audio_format(client, pkt->in, pkt->out,
+						false);
 	}
 
 	err = gip_make_audio_config(client, in);
