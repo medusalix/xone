@@ -6,6 +6,7 @@
 #pragma once
 
 #include <linux/types.h>
+#include <linux/uuid.h>
 
 #define GIP_VID_MICROSOFT 0x045e
 
@@ -102,6 +103,7 @@ int gip_set_led_mode(struct gip_client *client,
 		     enum gip_led_mode mode, u8 brightness);
 int gip_send_audio_samples(struct gip_client *client, void *samples);
 
+bool gip_has_interface(struct gip_client *client, const guid_t *guid);
 int gip_enable_audio(struct gip_client *client);
 int gip_init_audio_in(struct gip_client *client);
 int gip_init_audio_out(struct gip_client *client);

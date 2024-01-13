@@ -11,15 +11,19 @@
 
 #define GIP_GP_NAME "Microsoft X-Box One pad"
 
-/* product ID for the elite controller series 2 */
-#define GIP_GP_PID_ELITE2 0x0b00
-
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
 #define GIP_GP_RUMBLE_MAX 100
 
-static const guid_t gip_gamepad_guid_middle_button =
+static const guid_t gip_gamepad_guid_share =
 	GUID_INIT(0xecddd2fe, 0xd387, 0x4294,
 		  0xbd, 0x96, 0x1a, 0x71, 0x2e, 0x3d, 0xc7, 0x7d);
+
+static const guid_t gip_gamepad_guid_dli =
+	GUID_INIT(0x87f2e56b, 0xc3bb, 0x49b1,
+		  0x82, 0x65, 0xff, 0xff, 0xf3, 0x77, 0x99, 0xee);
+
+/* button offset from end of packet */
+#define GIP_GP_BTN_SHARE_OFFSET 18
 
 enum gip_gamepad_button {
 	GIP_GP_BTN_MENU = BIT(2),
@@ -55,9 +59,9 @@ struct gip_gamepad_pkt_input {
 	__le16 stick_right_y;
 } __packed;
 
-struct gip_gamepad_pkt_series_xs {
-	u8 unknown[4];
-	u8 share_button;
+struct gip_gamepad_pkt_dli {
+	u32 counter_us1;
+	u32 counter_us2;
 } __packed;
 
 struct gip_gamepad_pkt_rumble {
@@ -78,7 +82,8 @@ struct gip_gamepad {
 	struct gip_led led;
 	struct gip_input input;
 
-	bool series_xs;
+	bool supports_share;
+	bool supports_dli;
 
 	struct gip_gamepad_rumble {
 		/* serializes access to rumble packet */
@@ -147,33 +152,17 @@ static int gip_gamepad_init_rumble(struct gip_gamepad *gamepad)
 	return input_ff_create_memless(dev, NULL, gip_gamepad_queue_rumble);
 }
 
-static bool gip_gamepad_is_series_xs(struct gip_client *client)
-{
-	struct gip_hardware *hw = &client->hardware;
-	guid_t *guid;
-	int i;
-
-	/* the elite controller also has a middle button */
-	if (hw->vendor == GIP_VID_MICROSOFT &&
-	    hw->product == GIP_GP_PID_ELITE2)
-		return false;
-
-	for (i = 0; i < client->interfaces->count; i++) {
-		guid = (guid_t *)client->interfaces->data + i;
-		if (guid_equal(guid, &gip_gamepad_guid_middle_button))
-			return true;
-	}
-
-	return false;
-}
-
 static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 {
 	struct input_dev *dev = gamepad->input.dev;
 	int err;
 
-	gamepad->series_xs = gip_gamepad_is_series_xs(gamepad->client);
-	if (gamepad->series_xs)
+	gamepad->supports_share = gip_has_interface(gamepad->client,
+						    &gip_gamepad_guid_share);
+	gamepad->supports_dli = gip_has_interface(gamepad->client,
+						  &gip_gamepad_guid_dli);
+
+	if (gamepad->supports_share)
 		input_set_capability(dev, EV_KEY, KEY_RECORD);
 
 	input_set_capability(dev, EV_KEY, BTN_MODE);
@@ -243,18 +232,23 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, u32 len)
 {
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 	struct gip_gamepad_pkt_input *pkt = data;
-	struct gip_gamepad_pkt_series_xs *pkt_xs = data + sizeof(*pkt);
 	struct input_dev *dev = gamepad->input.dev;
 	u16 buttons = le16_to_cpu(pkt->buttons);
+	u8 share_offset = GIP_GP_BTN_SHARE_OFFSET;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
-	if (gamepad->series_xs) {
-		if (len < sizeof(*pkt) + sizeof(*pkt_xs))
+	/* share button byte is always at fixed offset from end of packet */
+	if (gamepad->supports_share) {
+		if (gamepad->supports_dli)
+			share_offset += sizeof(struct gip_gamepad_pkt_dli);
+
+		if (len < share_offset)
 			return -EINVAL;
 
-		input_report_key(dev, KEY_RECORD, !!pkt_xs->share_button);
+		input_report_key(dev, KEY_RECORD,
+				 ((u8 *)data)[len - share_offset]);
 	}
 
 	input_report_key(dev, BTN_START, buttons & GIP_GP_BTN_MENU);

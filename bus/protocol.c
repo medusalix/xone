@@ -567,6 +567,19 @@ int gip_send_audio_samples(struct gip_client *client, void *samples)
 }
 EXPORT_SYMBOL_GPL(gip_send_audio_samples);
 
+bool gip_has_interface(struct gip_client *client, const guid_t *guid)
+{
+	int i;
+
+	for (i = 0; i < client->interfaces->count; i++) {
+		if (guid_equal((guid_t *)client->interfaces->data + i, guid))
+			return true;
+	}
+
+	return false;
+}
+EXPORT_SYMBOL_GPL(gip_has_interface);
+
 int gip_enable_audio(struct gip_client *client)
 {
 	struct gip_adapter *adap = client->adapter;
