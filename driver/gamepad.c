@@ -122,11 +122,8 @@ static int gip_gamepad_queue_rumble(struct input_dev *dev, void *data,
 
 	spin_lock_irqsave(&rumble->lock, flags);
 
-	rumble->pkt.motors = GIP_GP_MOTOR_R | GIP_GP_MOTOR_L;
 	rumble->pkt.left = (mag_left * GIP_GP_RUMBLE_MAX + S16_MAX) / U16_MAX;
 	rumble->pkt.right = (mag_right * GIP_GP_RUMBLE_MAX + S16_MAX) / U16_MAX;
-	rumble->pkt.duration = 0xff;
-	rumble->pkt.repeat = 0xeb;
 
 	/* delay rumble to work around firmware bug */
 	if (!timer_pending(&rumble->timer))
@@ -144,7 +141,13 @@ static int gip_gamepad_init_rumble(struct gip_gamepad *gamepad)
 
 	spin_lock_init(&rumble->lock);
 	timer_setup(&rumble->timer, gip_gamepad_send_rumble, 0);
-	rumble->last = jiffies;
+
+	/* stop rumble (required for some exotic gamepads to start input) */
+	rumble->pkt.motors = GIP_GP_MOTOR_R | GIP_GP_MOTOR_L |
+			     GIP_GP_MOTOR_RT | GIP_GP_MOTOR_LT;
+	rumble->pkt.duration = 0xff;
+	rumble->pkt.repeat = 0xeb;
+	gip_gamepad_send_rumble(&rumble->timer);
 
 	input_set_capability(dev, EV_FF, FF_RUMBLE);
 	input_set_drvdata(dev, rumble);
