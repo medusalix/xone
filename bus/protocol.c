@@ -938,15 +938,12 @@ static int gip_handle_pkt_announce(struct gip_client *client,
 	if (len != sizeof(*pkt))
 		return -EINVAL;
 
-	if (hw->vendor || hw->product || hw->version) {
-		gip_warn(client, "%s: already announced\n", __func__);
-		return 0;
+	if (!hw->vendor && !hw->product && !hw->version) {
+		hw->vendor = le16_to_cpu(pkt->vendor_id);
+		hw->product = le16_to_cpu(pkt->product_id);
+		hw->version = (le16_to_cpu(pkt->fw_version.major) << 8) |
+			      le16_to_cpu(pkt->fw_version.minor);
 	}
-
-	hw->vendor = le16_to_cpu(pkt->vendor_id);
-	hw->product = le16_to_cpu(pkt->product_id);
-	hw->version = (le16_to_cpu(pkt->fw_version.major) << 8) |
-		      le16_to_cpu(pkt->fw_version.minor);
 
 	gip_dbg(client, "%s: address=%pM, vendor=0x%04x, product=0x%04x\n",
 		__func__, pkt->address, hw->vendor, hw->product);
