@@ -50,7 +50,7 @@ Any issues regarding the packaging should be reported to the respective maintain
 
 ### Prerequisites
 
-- Linux (kernel 4.15+ and headers)
+- Linux (kernel 5.11+ and headers)
 - DKMS
 - curl (for firmware download)
 - cabextract (for firmware extraction)
