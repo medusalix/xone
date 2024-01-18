@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-#define GIP_CP_NAME "Microsoft X-Box One chatpad"
+#define GIP_CP_NAME "Microsoft Xbox Chatpad"
 
 struct gip_chatpad {
 	struct gip_client *client;

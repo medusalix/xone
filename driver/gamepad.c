@@ -10,7 +10,7 @@
 #include "common.h"
 #include "../auth/auth.h"
 
-#define GIP_GP_NAME "Microsoft X-Box One pad"
+#define GIP_GP_NAME "Microsoft Xbox Controller"
 
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
 #define GIP_GP_RUMBLE_MAX 100
