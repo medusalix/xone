@@ -195,6 +195,7 @@ static struct gip_driver gip_jaguar_driver = {
 module_gip_driver(gip_jaguar_driver);
 
 MODULE_ALIAS("gip:PDP.Xbox.Guitar.Jaguar");
+MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_AUTHOR("Scott K Logan <logans@cottsay.net>");
 MODULE_DESCRIPTION("xone GIP jaguar guitar driver");
 MODULE_VERSION("#VERSION#");
