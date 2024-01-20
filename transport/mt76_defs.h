@@ -2,7 +2,7 @@
 /*
  * Based on code from the open source mt76 driver with minor modifications.
  *
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  *
  * Special thanks to the authors of the mt76 driver:
  *
@@ -1017,6 +1017,18 @@ enum mt76_qsel {
 	MT_QSEL_HCCA,
 	MT_QSEL_EDCA,
 	MT_QSEL_EDCA_2,
+};
+
+enum mt76_cipher_type {
+	MT_CIPHER_NONE,
+	MT_CIPHER_WEP40,
+	MT_CIPHER_WEP104,
+	MT_CIPHER_TKIP,
+	MT_CIPHER_AES_CCMP,
+	MT_CIPHER_CKIP40,
+	MT_CIPHER_CKIP104,
+	MT_CIPHER_CKIP128,
+	MT_CIPHER_WAPI,
 };
 
 struct mt76_fw_header {

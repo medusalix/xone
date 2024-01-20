@@ -1,12 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  */
 
 #pragma once
 
 #include <linux/types.h>
 #include <linux/device.h>
+#include <linux/semaphore.h>
 
 #include "protocol.h"
 
@@ -34,6 +35,7 @@ struct gip_adapter_ops {
 			  struct gip_adapter_buffer *buf);
 	int (*submit_buffer)(struct gip_adapter *adap,
 			     struct gip_adapter_buffer *buf);
+	int (*set_encryption_key)(struct gip_adapter *adap, u8 *key, int len);
 	int (*enable_audio)(struct gip_adapter *adap);
 	int (*init_audio_in)(struct gip_adapter *adap);
 	int (*init_audio_out)(struct gip_adapter *adap, int pkt_len);
@@ -48,10 +50,7 @@ struct gip_adapter {
 	int audio_packet_count;
 
 	struct gip_client *clients[GIP_MAX_CLIENTS];
-	struct workqueue_struct *state_queue;
-
-	/* serializes access to clients array */
-	spinlock_t clients_lock;
+	struct workqueue_struct *clients_wq;
 
 	/* serializes access to data sequence number */
 	spinlock_t send_lock;
@@ -63,10 +62,13 @@ struct gip_adapter {
 struct gip_client {
 	struct device dev;
 	u8 id;
-	atomic_t state;
 
 	struct gip_adapter *adapter;
 	struct gip_driver *drv;
+	struct semaphore drv_lock;
+
+	struct work_struct work_register;
+	struct work_struct work_unregister;
 
 	struct gip_chunk_buffer *chunk_buf;
 	struct gip_hardware hardware;
@@ -82,16 +84,13 @@ struct gip_client {
 
 	struct gip_audio_config audio_config_in;
 	struct gip_audio_config audio_config_out;
-
-	/* serializes packet processing */
-	spinlock_t lock;
-	struct work_struct state_work;
 };
 
 struct gip_driver_ops {
 	int (*battery)(struct gip_client *client,
 		       enum gip_battery_type type,
 		       enum gip_battery_level level);
+	int (*authenticate)(struct gip_client *client, void *data, u32 len);
 	int (*guide_button)(struct gip_client *client, bool down);
 	int (*audio_ready)(struct gip_client *client);
 	int (*audio_volume)(struct gip_client *client, u8 in, u8 out);
@@ -117,10 +116,9 @@ struct gip_adapter *gip_create_adapter(struct device *parent,
 int gip_power_off_adapter(struct gip_adapter *adap);
 void gip_destroy_adapter(struct gip_adapter *adap);
 
-struct gip_client *gip_get_or_init_client(struct gip_adapter *adap, u8 id);
-void gip_put_client(struct gip_client *client);
-void gip_register_client(struct gip_client *client);
-void gip_unregister_client(struct gip_client *client);
+struct gip_client *gip_get_client(struct gip_adapter *adap, u8 id);
+void gip_add_client(struct gip_client *client);
+void gip_remove_client(struct gip_client *client);
 void gip_free_client_info(struct gip_client *client);
 
 int __gip_register_driver(struct gip_driver *drv, struct module *owner,

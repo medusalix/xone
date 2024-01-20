@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  */
 
 #include <linux/module.h>
@@ -41,6 +41,7 @@ struct xone_dongle_client {
 	struct xone_dongle *dongle;
 	u8 wcid;
 	u8 address[ETH_ALEN];
+	bool encryption_enabled;
 
 	struct gip_adapter *adapter;
 };
@@ -51,6 +52,7 @@ struct xone_dongle_event {
 		XONE_DONGLE_EVT_REMOVE_CLIENT,
 		XONE_DONGLE_EVT_PAIR_CLIENT,
 		XONE_DONGLE_EVT_ENABLE_PAIRING,
+		XONE_DONGLE_EVT_ENABLE_ENCRYPTION,
 	} type;
 
 	struct xone_dongle *dongle;
@@ -97,6 +99,11 @@ static void xone_dongle_prep_packet(struct xone_dongle_client *client,
 	hdr.frame_control = cpu_to_le16(IEEE80211_FTYPE_DATA |
 					IEEE80211_STYPE_QOS_DATA |
 					IEEE80211_FCTL_FROMDS);
+
+	/* encrypt frame on transmission */
+	if (client->encryption_enabled)
+		hdr.frame_control |= cpu_to_le16(IEEE80211_FCTL_PROTECTED);
+
 	hdr.duration_id = cpu_to_le16(144);
 	memcpy(hdr.addr1, client->address, ETH_ALEN);
 	memcpy(hdr.addr2, client->dongle->mt.address, ETH_ALEN);
@@ -184,9 +191,19 @@ static int xone_dongle_submit_buffer(struct gip_adapter *adap,
 	return err;
 }
 
+static int xone_dongle_set_encryption_key(struct gip_adapter *adap,
+					  u8 *key, int len)
+{
+	struct xone_dongle_client *client = dev_get_drvdata(&adap->dev);
+
+	return xone_mt76_set_client_key(&client->dongle->mt, client->wcid,
+					key, len);
+}
+
 static struct gip_adapter_ops xone_dongle_adapter_ops = {
 	.get_buffer = xone_dongle_get_buffer,
 	.submit_buffer = xone_dongle_submit_buffer,
+	.set_encryption_key = xone_dongle_set_encryption_key,
 };
 
 static int xone_dongle_toggle_pairing(struct xone_dongle *dongle, bool enable)
@@ -365,6 +382,28 @@ static int xone_dongle_pair_client(struct xone_dongle *dongle, u8 *addr)
 	return xone_dongle_toggle_pairing(dongle, false);
 }
 
+static int xone_dongle_enable_client_encryption(struct xone_dongle *dongle,
+						u8 wcid)
+{
+	struct xone_dongle_client *client;
+	int err;
+
+	client = dongle->clients[wcid - 1];
+	if (!client)
+		return -EINVAL;
+
+	dev_dbg(dongle->mt.dev, "%s: wcid=%d, address=%pM\n",
+		__func__, wcid, client->address);
+
+	err = xone_mt76_enable_client_encryption(&dongle->mt, client->address);
+	if (err)
+		return err;
+
+	client->encryption_enabled = true;
+
+	return 0;
+}
+
 static void xone_dongle_handle_event(struct work_struct *work)
 {
 	struct xone_dongle_event *evt = container_of(work, typeof(*evt), work);
@@ -384,6 +423,10 @@ static void xone_dongle_handle_event(struct work_struct *work)
 		mod_delayed_work(system_wq, &evt->dongle->pairing_work,
 				 XONE_DONGLE_PAIRING_TIMEOUT);
 		err = xone_dongle_toggle_pairing(evt->dongle, true);
+		break;
+	case XONE_DONGLE_EVT_ENABLE_ENCRYPTION:
+		err = xone_dongle_enable_client_encryption(evt->dongle,
+							   evt->wcid);
 		break;
 	}
 
@@ -467,20 +510,33 @@ static int xone_dongle_handle_disassociation(struct xone_dongle *dongle,
 }
 
 static int xone_dongle_handle_reserved(struct xone_dongle *dongle,
-				       struct sk_buff *skb, u8 *addr)
+				       struct sk_buff *skb, u8 wcid, u8 *addr)
 {
 	struct xone_dongle_event *evt;
+	enum xone_dongle_event_type evt_type;
 
-	if (skb->len < 2)
+	if (skb->len < 2 || skb->data[0] != XONE_MT_WLAN_RESERVED)
 		return -EINVAL;
 
-	if (skb->data[1] != 0x01)
-		return 0;
+	switch (skb->data[1]) {
+	case 0x01:
+		evt_type = XONE_DONGLE_EVT_PAIR_CLIENT;
+		break;
+	case 0x10:
+		if (!wcid || wcid > XONE_DONGLE_MAX_CLIENTS)
+			return -EINVAL;
 
-	evt = xone_dongle_alloc_event(dongle, XONE_DONGLE_EVT_PAIR_CLIENT);
+		evt_type = XONE_DONGLE_EVT_ENABLE_ENCRYPTION;
+		break;
+	default:
+		return 0;
+	}
+
+	evt = xone_dongle_alloc_event(dongle, evt_type);
 	if (!evt)
 		return -ENOMEM;
 
+	evt->wcid = wcid;
 	memcpy(evt->address, addr, ETH_ALEN);
 
 	queue_work(dongle->event_wq, &evt->work);
@@ -541,7 +597,8 @@ static int xone_dongle_process_frame(struct xone_dongle *dongle,
 	case IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_DISASSOC:
 		return xone_dongle_handle_disassociation(dongle, wcid);
 	case IEEE80211_FTYPE_MGMT | XONE_MT_WLAN_RESERVED:
-		return xone_dongle_handle_reserved(dongle, skb, hdr->addr2);
+		return xone_dongle_handle_reserved(dongle, skb,	wcid,
+						   hdr->addr2);
 	}
 
 	return 0;
@@ -976,7 +1033,7 @@ static struct usb_driver xone_dongle_driver = {
 module_usb_driver(xone_dongle_driver);
 
 MODULE_DEVICE_TABLE(usb, xone_dongle_id_table);
-MODULE_AUTHOR("Severin von Wnuck <severinvonw@outlook.de>");
+MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone dongle driver");
 MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");

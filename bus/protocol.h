@@ -1,21 +1,17 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  */
 
 #pragma once
 
 #include <linux/types.h>
+#include <linux/uuid.h>
+
+#define GIP_VID_MICROSOFT 0x045e
 
 /* time between audio packets in ms */
 #define GIP_AUDIO_INTERVAL 8
-
-enum gip_client_state {
-	GIP_CL_CONNECTED,
-	GIP_CL_ANNOUNCED,
-	GIP_CL_IDENTIFIED,
-	GIP_CL_DISCONNECTED,
-};
 
 enum gip_battery_type {
 	GIP_BATT_TYPE_NONE = 0x00,
@@ -38,6 +34,7 @@ enum gip_power_mode {
 };
 
 enum gip_audio_format {
+	GIP_AUD_FORMAT_16KHZ_MONO = 0x05,
 	GIP_AUD_FORMAT_24KHZ_MONO = 0x09,
 	GIP_AUD_FORMAT_48KHZ_STEREO = 0x10,
 };
@@ -95,16 +92,20 @@ struct gip_client;
 struct gip_adapter;
 
 int gip_set_power_mode(struct gip_client *client, enum gip_power_mode mode);
-int gip_complete_authentication(struct gip_client *client);
+int gip_send_authenticate(struct gip_client *client, void *pkt, u32 len,
+			  bool acknowledge);
 int gip_suggest_audio_format(struct gip_client *client,
 			     enum gip_audio_format in,
-			     enum gip_audio_format out);
-int gip_fix_audio_volume(struct gip_client *client);
+			     enum gip_audio_format out,
+			     bool chat);
+int gip_set_audio_volume(struct gip_client *client, u8 in, u8 chat, u8 out);
 int gip_send_rumble(struct gip_client *client, void *pkt, u32 len);
 int gip_set_led_mode(struct gip_client *client,
 		     enum gip_led_mode mode, u8 brightness);
 int gip_send_audio_samples(struct gip_client *client, void *samples);
 
+bool gip_has_interface(struct gip_client *client, const guid_t *guid);
+int gip_set_encryption_key(struct gip_client *client, u8 *key, int len);
 int gip_enable_audio(struct gip_client *client);
 int gip_init_audio_in(struct gip_client *client);
 int gip_init_audio_out(struct gip_client *client);

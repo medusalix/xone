@@ -1,6 +1,6 @@
 xone-wired-y := transport/wired.o
 xone-dongle-y := transport/dongle.o transport/mt76.o
-xone-gip-y := bus/bus.o bus/protocol.o driver/common.o
+xone-gip-y := bus/bus.o bus/protocol.o auth/auth.o auth/crypto.o driver/common.o
 xone-gip-gamepad-y := driver/gamepad.o
 xone-gip-headset-y := driver/headset.o
 xone-gip-chatpad-y := driver/chatpad.o

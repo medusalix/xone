@@ -29,17 +29,15 @@ Always update your Xbox devices to the latest firmware version!
     - [x] Xbox One Controllers
     - [x] Xbox Series X|S Controllers
     - [x] Third party controllers (PowerA, PDP, etc.)
-- [ ] Headsets
+- [x] Headsets
     - [x] Xbox One Chat Headset
     - [x] Xbox One Stereo Headset (adapter or jack)
-    - [ ] Xbox Wireless Headset
-    - [ ] Third party wireless headsets (SteelSeries, Razer, etc.)
+    - [x] Xbox Wireless Headset
+    - [x] Third party wireless headsets (SteelSeries, Razer, etc.)
 - [ ] Third party racing wheels (Thrustmaster, Logitech, etc.)
 - [x] Xbox One Chatpad
 - [x] Xbox Adaptive Controller
 - [x] Mad Catz Rock Band 4 Wireless Stratocaster
-
-⚠️ Standalone wireless headsets are currently not supported!
 
 ## Releases
 
@@ -52,7 +50,7 @@ Any issues regarding the packaging should be reported to the respective maintain
 
 ### Prerequisites
 
-- Linux (kernel 4.15+ and headers)
+- Linux (kernel 5.11+ and headers)
 - DKMS
 - curl (for firmware download)
 - cabextract (for firmware extraction)
@@ -136,7 +134,7 @@ Please join the [Discord server](https://discord.gg/FDQxwWk) in case of any othe
 `xone` is released under the [GNU General Public License, Version 2](LICENSE).
 
 ```
-Copyright (C) 2021 Severin von Wnuck
+Copyright (C) 2021 Severin von Wnuck-Lipinski
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

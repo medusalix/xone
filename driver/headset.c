@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2021 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  */
 
 #include <linux/module.h>
@@ -9,9 +9,13 @@
 #include <sound/initval.h>
 #include <sound/pcm.h>
 
-#include "../bus/bus.h"
+#include "common.h"
+#include "../auth/auth.h"
 
-#define GIP_HS_NAME "Microsoft X-Box One headset"
+#define GIP_HS_NAME "Microsoft Xbox Headset"
+
+/* product ID for the chat headset */
+#define GIP_HS_PID_CHAT 0x0111
 
 #define GIP_HS_CONFIG_DELAY msecs_to_jiffies(1000)
 #define GIP_HS_POWER_ON_DELAY msecs_to_jiffies(1000)
@@ -30,10 +34,14 @@ static const struct snd_pcm_hardware gip_headset_pcm_hw = {
 
 struct gip_headset {
 	struct gip_client *client;
+	struct gip_battery battery;
+	struct gip_auth auth;
 
-	struct delayed_work config_work;
-	struct delayed_work power_on_work;
-	struct work_struct register_work;
+	bool chat_headset;
+
+	struct delayed_work work_config;
+	struct delayed_work work_power_on;
+	struct work_struct work_register;
 	bool registered;
 
 	struct hrtimer timer;
@@ -290,10 +298,13 @@ static int gip_headset_start_audio(struct gip_headset *headset)
 	struct gip_client *client = headset->client;
 	int err;
 
-	/* set headset volume to maximum */
-	err = gip_fix_audio_volume(client);
-	if (err)
-		return err;
+	/* set hardware volume to maximum for headset jack */
+	/* standalone & chat headsets have physical volume controls */
+	if (client->id && !headset->chat_headset) {
+		err = gip_set_audio_volume(client, 100, 50, 100);
+		if (err)
+			return err;
+	}
 
 	err = gip_init_audio_out(client);
 	if (err)
@@ -308,7 +319,7 @@ static void gip_headset_config(struct work_struct *work)
 {
 	struct gip_headset *headset = container_of(to_delayed_work(work),
 						   typeof(*headset),
-						   config_work);
+						   work_config);
 	struct gip_client *client = headset->client;
 	struct gip_info_element *fmts = client->audio_formats;
 	int err;
@@ -317,7 +328,8 @@ static void gip_headset_config(struct work_struct *work)
 		fmts->data[0], fmts->data[1]);
 
 	/* suggest initial audio format */
-	err = gip_suggest_audio_format(client, fmts->data[0], fmts->data[1]);
+	err = gip_suggest_audio_format(client, fmts->data[0], fmts->data[1],
+				       headset->chat_headset);
 	if (err)
 		dev_err(&client->dev, "%s: suggest format failed: %d\n",
 			__func__, err);
@@ -327,20 +339,38 @@ static void gip_headset_power_on(struct work_struct *work)
 {
 	struct gip_headset *headset = container_of(to_delayed_work(work),
 						   typeof(*headset),
-						   power_on_work);
+						   work_power_on);
 	struct gip_client *client = headset->client;
 	int err;
 
 	err = gip_set_power_mode(client, GIP_PWR_ON);
-	if (err)
+	if (err) {
 		dev_err(&client->dev, "%s: set power mode failed: %d\n",
+			__func__, err);
+		return;
+	}
+
+	/* not a standalone headset */
+	if (client->id)
+		return;
+
+	err = gip_init_battery(&headset->battery, client, GIP_HS_NAME);
+	if (err) {
+		dev_err(&client->dev, "%s: init battery failed: %d\n",
+			__func__, err);
+		return;
+	}
+
+	err = gip_auth_start_handshake(&headset->auth, client);
+	if (err)
+		dev_err(&client->dev, "%s: start handshake failed: %d\n",
 			__func__, err);
 }
 
 static void gip_headset_register(struct work_struct *work)
 {
 	struct gip_headset *headset = container_of(work, typeof(*headset),
-						   register_work);
+						   work_register);
 	struct device *dev = &headset->client->dev;
 	int err;
 
@@ -369,11 +399,30 @@ err_free_card:
 	headset->card = NULL;
 }
 
+static int gip_headset_op_battery(struct gip_client *client,
+				  enum gip_battery_type type,
+				  enum gip_battery_level level)
+{
+	struct gip_headset *headset = dev_get_drvdata(&client->dev);
+
+	gip_report_battery(&headset->battery, type, level);
+
+	return 0;
+}
+
+static int gip_headset_op_authenticate(struct gip_client *client,
+				       void *data, u32 len)
+{
+	struct gip_headset *headset = dev_get_drvdata(&client->dev);
+
+	return gip_auth_process_pkt(&headset->auth, data, len);
+}
+
 static int gip_headset_op_audio_ready(struct gip_client *client)
 {
 	struct gip_headset *headset = dev_get_drvdata(&client->dev);
 
-	schedule_delayed_work(&headset->power_on_work, GIP_HS_POWER_ON_DELAY);
+	schedule_delayed_work(&headset->work_power_on, GIP_HS_POWER_ON_DELAY);
 
 	return 0;
 }
@@ -385,7 +434,7 @@ static int gip_headset_op_audio_volume(struct gip_client *client,
 
 	/* headset reported initial volume, start audio I/O */
 	if (!headset->registered) {
-		schedule_work(&headset->register_work);
+		schedule_work(&headset->work_register);
 		headset->registered = true;
 	}
 
@@ -432,10 +481,12 @@ static int gip_headset_probe(struct gip_client *client)
 		return -ENOMEM;
 
 	headset->client = client;
+	headset->chat_headset = client->hardware.vendor == GIP_VID_MICROSOFT &&
+				client->hardware.product == GIP_HS_PID_CHAT;
 
-	INIT_DELAYED_WORK(&headset->config_work, gip_headset_config);
-	INIT_DELAYED_WORK(&headset->power_on_work, gip_headset_power_on);
-	INIT_WORK(&headset->register_work, gip_headset_register);
+	INIT_DELAYED_WORK(&headset->work_config, gip_headset_config);
+	INIT_DELAYED_WORK(&headset->work_power_on, gip_headset_power_on);
+	INIT_WORK(&headset->work_register, gip_headset_register);
 
 	hrtimer_init(&headset->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	headset->timer.function = gip_headset_send_samples;
@@ -453,7 +504,7 @@ static int gip_headset_probe(struct gip_client *client)
 	dev_set_drvdata(&client->dev, headset);
 
 	/* delay to prevent response from being dropped */
-	schedule_delayed_work(&headset->config_work, GIP_HS_CONFIG_DELAY);
+	schedule_delayed_work(&headset->work_config, GIP_HS_CONFIG_DELAY);
 
 	return 0;
 }
@@ -462,9 +513,9 @@ static void gip_headset_remove(struct gip_client *client)
 {
 	struct gip_headset *headset = dev_get_drvdata(&client->dev);
 
-	cancel_delayed_work_sync(&headset->config_work);
-	cancel_delayed_work_sync(&headset->power_on_work);
-	cancel_work_sync(&headset->register_work);
+	cancel_delayed_work_sync(&headset->work_config);
+	cancel_delayed_work_sync(&headset->work_power_on);
+	cancel_work_sync(&headset->work_register);
 	hrtimer_cancel(&headset->timer);
 	gip_disable_audio(client);
 
@@ -478,6 +529,8 @@ static struct gip_driver gip_headset_driver = {
 	.name = "xone-gip-headset",
 	.class = "Windows.Xbox.Input.Headset",
 	.ops = {
+		.battery = gip_headset_op_battery,
+		.authenticate = gip_headset_op_authenticate,
 		.audio_ready = gip_headset_op_audio_ready,
 		.audio_volume = gip_headset_op_audio_volume,
 		.audio_samples = gip_headset_op_audio_samples,
@@ -488,7 +541,7 @@ static struct gip_driver gip_headset_driver = {
 module_gip_driver(gip_headset_driver);
 
 MODULE_ALIAS("gip:Windows.Xbox.Input.Headset");
-MODULE_AUTHOR("Severin von Wnuck <severinvonw@outlook.de>");
+MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone GIP headset driver");
 MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");

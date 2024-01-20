@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) 2022 Severin von Wnuck <severinvonw@outlook.de>
+ * Copyright (C) 2022 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
  */
 
 #include <linux/module.h>
 
 #include "common.h"
+#include "../auth/auth.h"
 
 #define GIP_GT_NAME "Mad Catz Rock Band 4 Stratocaster"
 
@@ -38,6 +39,7 @@ struct gip_guitar_pkt_input {
 struct gip_guitar {
 	struct gip_client *client;
 	struct gip_battery battery;
+	struct gip_auth auth;
 	struct gip_input input;
 };
 
@@ -82,6 +84,14 @@ static int gip_guitar_op_battery(struct gip_client *client,
 	gip_report_battery(&guitar->battery, type, level);
 
 	return 0;
+}
+
+static int gip_guitar_op_authenticate(struct gip_client *client,
+				      void *data, u32 len)
+{
+	struct gip_guitar *guitar = dev_get_drvdata(&client->dev);
+
+	return gip_auth_process_pkt(&guitar->auth, data, len);
 }
 
 static int gip_guitar_op_guide_button(struct gip_client *client, bool down)
@@ -157,7 +167,7 @@ static int gip_guitar_probe(struct gip_client *client)
 	if (err)
 		return err;
 
-	err = gip_complete_authentication(client);
+	err = gip_auth_start_handshake(&guitar->auth, client);
 	if (err)
 		return err;
 
@@ -179,6 +189,7 @@ static struct gip_driver gip_guitar_driver = {
 	.class = "MadCatz.Xbox.Guitar.Stratocaster",
 	.ops = {
 		.battery = gip_guitar_op_battery,
+		.authenticate = gip_guitar_op_authenticate,
 		.guide_button = gip_guitar_op_guide_button,
 		.input = gip_guitar_op_input,
 	},
@@ -187,7 +198,7 @@ static struct gip_driver gip_guitar_driver = {
 module_gip_driver(gip_guitar_driver);
 
 MODULE_ALIAS("gip:MadCatz.Xbox.Guitar.Stratocaster");
-MODULE_AUTHOR("Severin von Wnuck <severinvonw@outlook.de>");
+MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone GIP guitar driver");
 MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");
