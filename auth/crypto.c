@@ -204,12 +204,18 @@ int gip_auth_compute_ecdh(u8 *pubkey_in, u8 *pubkey_out,
 {
 	struct crypto_kpp *tfm_ecdh;
 	struct crypto_shash *tfm_sha;
-	u8 secret[GIP_AUTH_ECDH_SECRET_LEN];
+	u8 *secret;
 	int err;
 
+	secret = kmalloc(GIP_AUTH_ECDH_SECRET_LEN, GFP_KERNEL);
+	if (!secret)
+		return -ENOMEM;
+
 	tfm_ecdh = crypto_alloc_kpp("ecdh-nist-p256", 0, 0);
-	if (IS_ERR(tfm_ecdh))
-		return PTR_ERR(tfm_ecdh);
+	if (IS_ERR(tfm_ecdh)) {
+		err = PTR_ERR(tfm_ecdh);
+		goto err_free_secret;
+	}
 
 	tfm_sha = crypto_alloc_shash("sha256", 0, 0);
 	if (IS_ERR(tfm_sha)) {
@@ -222,17 +228,21 @@ int gip_auth_compute_ecdh(u8 *pubkey_in, u8 *pubkey_out,
 		goto err_free_sha;
 
 	err = gip_auth_ecdh_get_secret(tfm_ecdh, pubkey_in, pubkey_len,
-				       secret, sizeof(secret));
+				       secret, GIP_AUTH_ECDH_SECRET_LEN);
 	if (err)
 		goto err_free_sha;
 
-	crypto_shash_tfm_digest(tfm_sha, secret, sizeof(secret), secret_hash);
+	crypto_shash_tfm_digest(tfm_sha, secret, GIP_AUTH_ECDH_SECRET_LEN,
+				secret_hash);
 
 err_free_sha:
 	crypto_free_shash(tfm_sha);
 
 err_free_ecdh:
 	crypto_free_kpp(tfm_ecdh);
+
+err_free_secret:
+	kfree(secret);
 
 	return err;
 }
