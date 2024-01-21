@@ -242,11 +242,11 @@ static void gip_unregister_client(struct work_struct *work)
 	struct gip_client *client = container_of(work, typeof(*client),
 						 work_unregister);
 
-	if (device_is_registered(&client->dev))
-		device_unregister(&client->dev);
+	if (!device_is_registered(&client->dev))
+		return;
 
-	dev_dbg(&client->adapter->dev, "%s: unregistered client %u\n",
-		__func__, client->id);
+	dev_dbg(&client->dev, "%s: unregistered\n", __func__);
+	device_unregister(&client->dev);
 }
 
 struct gip_client *gip_get_client(struct gip_adapter *adap, u8 id)
