@@ -6,6 +6,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/bitfield.h>
+#include <linux/version.h>
 #include <linux/usb.h>
 #include <linux/ieee80211.h>
 #include <net/cfg80211.h>
@@ -1024,7 +1025,11 @@ static struct usb_driver xone_dongle_driver = {
 	.suspend = xone_dongle_suspend,
 	.resume = xone_dongle_resume,
 	.id_table = xone_dongle_id_table,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0)
 	.drvwrap.driver.shutdown = xone_dongle_shutdown,
+#else
+	.driver.shutdown = xone_dongle_shutdown,
+#endif
 	.supports_autosuspend = true,
 	.disable_hub_initiated_lpm = true,
 	.soft_unbind = true,
