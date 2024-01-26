@@ -288,7 +288,7 @@ static void gip_auth2_exchange_ecdh(struct work_struct *work)
 	int err;
 
 	pkt = kzalloc(sizeof(*pkt), GFP_KERNEL);
-	if (err)
+	if (!pkt)
 		return;
 
 	err = gip_auth2_compute_master_secret(auth, pkt->pubkey,
