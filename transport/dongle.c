@@ -408,7 +408,7 @@ static int xone_dongle_enable_client_encryption(struct xone_dongle *dongle,
 static void xone_dongle_handle_event(struct work_struct *work)
 {
 	struct xone_dongle_event *evt = container_of(work, typeof(*evt), work);
-	int err;
+	int err = 0;
 
 	switch (evt->type) {
 	case XONE_DONGLE_EVT_ADD_CLIENT:
