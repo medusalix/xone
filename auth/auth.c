@@ -309,7 +309,7 @@ err_free_pkt:
 	kfree(pkt);
 }
 
-int gip_auth_send_pkt_hello(struct gip_auth *auth)
+static int gip_auth_send_pkt_hello(struct gip_auth *auth)
 {
 	struct gip_auth_pkt_host_hello pkt = {};
 
@@ -565,9 +565,9 @@ static void gip_auth_complete_handshake(struct work_struct *work)
 			"%s: set encryption key failed: %d\n", __func__, err);
 }
 
-int gip_auth_dispatch_pkt(struct gip_auth *auth,
-			  enum gip_auth_command_handshake cmd,
-			  void *data, u32 len)
+static int gip_auth_dispatch_pkt(struct gip_auth *auth,
+				 enum gip_auth_command_handshake cmd,
+				 void *data, u32 len)
 {
 	switch (cmd) {
 	case GIP_AUTH2_CMD_CLIENT_HELLO:

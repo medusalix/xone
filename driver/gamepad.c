@@ -15,6 +15,9 @@
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
 #define GIP_GP_RUMBLE_MAX 100
 
+/* button offset from end of packet */
+#define GIP_GP_BTN_SHARE_OFFSET 18
+
 static const guid_t gip_gamepad_guid_share =
 	GUID_INIT(0xecddd2fe, 0xd387, 0x4294,
 		  0xbd, 0x96, 0x1a, 0x71, 0x2e, 0x3d, 0xc7, 0x7d);
@@ -22,9 +25,6 @@ static const guid_t gip_gamepad_guid_share =
 static const guid_t gip_gamepad_guid_dli =
 	GUID_INIT(0x87f2e56b, 0xc3bb, 0x49b1,
 		  0x82, 0x65, 0xff, 0xff, 0xf3, 0x77, 0x99, 0xee);
-
-/* button offset from end of packet */
-#define GIP_GP_BTN_SHARE_OFFSET 18
 
 enum gip_gamepad_button {
 	GIP_GP_BTN_MENU = BIT(2),
