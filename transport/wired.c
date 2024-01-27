@@ -576,5 +576,4 @@ module_usb_driver(xone_wired_driver);
 MODULE_DEVICE_TABLE(usb, xone_wired_id_table);
 MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone wired driver");
-MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");

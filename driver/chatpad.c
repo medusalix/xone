@@ -200,5 +200,4 @@ module_gip_driver(gip_chatpad_driver);
 MODULE_ALIAS("gip:Windows.Xbox.Input.Chatpad");
 MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone GIP chatpad driver");
-MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");

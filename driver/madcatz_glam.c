@@ -205,5 +205,4 @@ module_gip_driver(gip_glam_driver);
 MODULE_ALIAS("gip:MadCatz.Xbox.Drums.Glam");
 MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone GIP Mad Catz Drum Kit driver");
-MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");

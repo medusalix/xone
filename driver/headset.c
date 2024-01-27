@@ -499,5 +499,4 @@ module_gip_driver(gip_headset_driver);
 MODULE_ALIAS("gip:Windows.Xbox.Input.Headset");
 MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone GIP headset driver");
-MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");

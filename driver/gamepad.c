@@ -355,5 +355,4 @@ module_gip_driver(gip_gamepad_driver);
 MODULE_ALIAS("gip:Windows.Xbox.Input.Gamepad");
 MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_DESCRIPTION("xone GIP gamepad driver");
-MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");
