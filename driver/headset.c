@@ -14,6 +14,8 @@
 
 #define GIP_HS_NAME "Microsoft Xbox Headset"
 
+#define GIP_HS_NUM_BUFFERS 128
+
 /* product ID for the chat headset */
 #define GIP_HS_PID_CHAT 0x0111
 
@@ -29,7 +31,7 @@ static const struct snd_pcm_hardware gip_headset_pcm_hw = {
 	.formats = SNDRV_PCM_FMTBIT_S16_LE,
 	.rates = SNDRV_PCM_RATE_CONTINUOUS,
 	.periods_min = 2,
-	.periods_max = 1024,
+	.periods_max = GIP_HS_NUM_BUFFERS,
 };
 
 struct gip_headset {
@@ -72,9 +74,9 @@ static int gip_headset_pcm_open(struct snd_pcm_substream *sub)
 	hw.rate_max = cfg->sample_rate;
 	hw.channels_min = cfg->channels;
 	hw.channels_max = cfg->channels;
-	hw.buffer_bytes_max = cfg->buffer_size * 8;
+	hw.buffer_bytes_max = cfg->buffer_size * GIP_HS_NUM_BUFFERS;
 	hw.period_bytes_min = cfg->buffer_size;
-	hw.period_bytes_max = cfg->buffer_size * 8;
+	hw.period_bytes_max = cfg->buffer_size;
 
 	sub->runtime->hw = hw;
 
