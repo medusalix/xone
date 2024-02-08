@@ -730,7 +730,6 @@ static int gip_make_audio_config(struct gip_client *client,
 	/* pseudo header for length calculation */
 	hdr.packet_length = cfg->fragment_size;
 	cfg->packet_size = gip_get_header_length(&hdr) + cfg->fragment_size;
-	cfg->valid = true;
 
 	gip_dbg(client, "%s: rate=%d/%d, buffer=%d\n", __func__,
 		cfg->sample_rate, cfg->channels, cfg->buffer_size);
@@ -1153,7 +1152,8 @@ static int gip_handle_pkt_audio_format_chat(struct gip_client *client,
 		return -EINVAL;
 
 	/* chat headsets apparently default to 24 kHz */
-	if (pkt->in_out != GIP_AUD_FORMAT_CHAT_24KHZ || in->valid || out->valid)
+	if (pkt->in_out != GIP_AUD_FORMAT_CHAT_24KHZ ||
+	    in->buffer_size || out->buffer_size)
 		return -EPROTO;
 
 	err = gip_make_audio_config(client, in);
@@ -1207,7 +1207,7 @@ static int gip_handle_pkt_audio_format(struct gip_client *client,
 		return -EINVAL;
 
 	/* format has already been accepted */
-	if (in->valid || out->valid)
+	if (in->buffer_size || out->buffer_size)
 		return -EPROTO;
 
 	/* client rejected format, accept new format */

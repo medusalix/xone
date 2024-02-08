@@ -79,8 +79,6 @@ struct gip_audio_config {
 	int buffer_size;
 	int fragment_size;
 	int packet_size;
-
-	bool valid;
 };
 
 struct gip_classes {
