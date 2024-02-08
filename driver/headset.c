@@ -258,7 +258,7 @@ static int gip_headset_init_card(struct gip_headset *headset)
 	if (err)
 		return err;
 
-	strscpy(card->driver, "GIP Headset", sizeof(card->driver));
+	strscpy(card->driver, "xone-gip-headset", sizeof(card->driver));
 	strscpy(card->shortname, GIP_HS_NAME, sizeof(card->shortname));
 	snprintf(card->longname, sizeof(card->longname), "%s at %s",
 		 GIP_HS_NAME, dev_name(&headset->client->dev));
@@ -274,11 +274,11 @@ static int gip_headset_init_pcm(struct gip_headset *headset)
 	struct snd_pcm *pcm;
 	int err;
 
-	err = snd_pcm_new(headset->card, "GIP Headset", 0, 1, 1, &pcm);
+	err = snd_pcm_new(headset->card, GIP_HS_NAME, 0, 1, 1, &pcm);
 	if (err)
 		return err;
 
-	strscpy(pcm->name, "GIP Headset", sizeof(pcm->name));
+	strscpy(pcm->name, GIP_HS_NAME, sizeof(pcm->name));
 	pcm->private_data = headset;
 
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &gip_headset_pcm_ops);
