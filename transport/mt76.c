@@ -187,7 +187,7 @@ struct sk_buff *xone_mt76_alloc_message(int len, gfp_t gfp)
 	return skb;
 }
 
-void xone_mt76_prep_message(struct sk_buff *skb, u32 info)
+static void xone_mt76_prep_message(struct sk_buff *skb, u32 info)
 {
 	int len, pad;
 
@@ -571,18 +571,18 @@ err_free_firmware:
 
 static const struct xone_mt76_channel
 xone_mt76_channels[XONE_MT_NUM_CHANNELS] = {
-	{ 0x01, XONE_MT_CH_2G_LOW, MT_PHY_BW_20, 0, true },
-	{ 0x06, XONE_MT_CH_2G_MID, MT_PHY_BW_20, 0, true },
-	{ 0x0b, XONE_MT_CH_2G_HIGH, MT_PHY_BW_20, 0, true },
-	{ 0x24, XONE_MT_CH_5G_LOW, MT_PHY_BW_40, MT_CH_5G_UNII_1, true },
-	{ 0x28, XONE_MT_CH_5G_LOW, MT_PHY_BW_40, MT_CH_5G_UNII_1, false },
-	{ 0x2c, XONE_MT_CH_5G_HIGH, MT_PHY_BW_40, MT_CH_5G_UNII_1, true },
-	{ 0x30, XONE_MT_CH_5G_HIGH, MT_PHY_BW_40, MT_CH_5G_UNII_1, false },
-	{ 0x95, XONE_MT_CH_5G_LOW, MT_PHY_BW_80, MT_CH_5G_UNII_3, true },
-	{ 0x99, XONE_MT_CH_5G_LOW, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
-	{ 0x9d, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, true },
-	{ 0xa1, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
-	{ 0xa5, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, false },
+	{ 0x01, XONE_MT_CH_2G_LOW, MT_PHY_BW_20, 0, true, 0 },
+	{ 0x06, XONE_MT_CH_2G_MID, MT_PHY_BW_20, 0, true, 0 },
+	{ 0x0b, XONE_MT_CH_2G_HIGH, MT_PHY_BW_20, 0, true, 0 },
+	{ 0x24, XONE_MT_CH_5G_LOW, MT_PHY_BW_40, MT_CH_5G_UNII_1, true, 0 },
+	{ 0x28, XONE_MT_CH_5G_LOW, MT_PHY_BW_40, MT_CH_5G_UNII_1, false, 0 },
+	{ 0x2c, XONE_MT_CH_5G_HIGH, MT_PHY_BW_40, MT_CH_5G_UNII_1, true, 0 },
+	{ 0x30, XONE_MT_CH_5G_HIGH, MT_PHY_BW_40, MT_CH_5G_UNII_1, false, 0 },
+	{ 0x95, XONE_MT_CH_5G_LOW, MT_PHY_BW_80, MT_CH_5G_UNII_3, true, 0 },
+	{ 0x99, XONE_MT_CH_5G_LOW, MT_PHY_BW_80, MT_CH_5G_UNII_3, false, 0 },
+	{ 0x9d, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, true, 0 },
+	{ 0xa1, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, false, 0 },
+	{ 0xa5, XONE_MT_CH_5G_HIGH, MT_PHY_BW_80, MT_CH_5G_UNII_3, false, 0 },
 };
 
 static int xone_mt76_set_channel_candidates(struct xone_mt76 *mt)
