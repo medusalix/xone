@@ -115,6 +115,7 @@ static void xone_dongle_prep_packet(struct xone_dongle_client *client,
 					    IEEE80211_HT_MPDU_DENSITY_4));
 	txwi.rate = cpu_to_le16(FIELD_PREP(MT_RXWI_RATE_PHY, MT_PHY_TYPE_OFDM));
 	txwi.ack_ctl = MT_TXWI_ACK_CTL_REQ;
+	txwi.wcid = client->wcid - 1;
 	txwi.len_ctl = cpu_to_le16(sizeof(hdr) + skb->len);
 
 	memset(skb_push(skb, 2), 0, 2);
@@ -387,6 +388,7 @@ static int xone_dongle_enable_client_encryption(struct xone_dongle *dongle,
 						u8 wcid)
 {
 	struct xone_dongle_client *client;
+	u8 data[] = { 0x00, 0x00 };
 	int err;
 
 	client = dongle->clients[wcid - 1];
@@ -396,7 +398,9 @@ static int xone_dongle_enable_client_encryption(struct xone_dongle *dongle,
 	dev_dbg(dongle->mt.dev, "%s: wcid=%d, address=%pM\n",
 		__func__, wcid, client->address);
 
-	err = xone_mt76_enable_client_encryption(&dongle->mt, client->address);
+	err = xone_mt76_send_client_command(&dongle->mt, wcid, client->address,
+					    XONE_MT_CLIENT_ENABLE_ENCRYPTION,
+					    data, sizeof(data));
 	if (err)
 		return err;
 
@@ -510,8 +514,9 @@ static int xone_dongle_handle_disassociation(struct xone_dongle *dongle,
 	return 0;
 }
 
-static int xone_dongle_handle_reserved(struct xone_dongle *dongle,
-				       struct sk_buff *skb, u8 wcid, u8 *addr)
+static int xone_dongle_handle_client_command(struct xone_dongle *dongle,
+					     struct sk_buff *skb,
+					     u8 wcid, u8 *addr)
 {
 	struct xone_dongle_event *evt;
 	enum xone_dongle_event_type evt_type;
@@ -520,10 +525,10 @@ static int xone_dongle_handle_reserved(struct xone_dongle *dongle,
 		return -EINVAL;
 
 	switch (skb->data[1]) {
-	case 0x01:
+	case XONE_MT_CLIENT_PAIR_REQ:
 		evt_type = XONE_DONGLE_EVT_PAIR_CLIENT;
 		break;
-	case 0x10:
+	case XONE_MT_CLIENT_ENABLE_ENCRYPTION:
 		if (!wcid || wcid > XONE_DONGLE_MAX_CLIENTS)
 			return -EINVAL;
 
@@ -598,8 +603,8 @@ static int xone_dongle_process_frame(struct xone_dongle *dongle,
 	case IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_DISASSOC:
 		return xone_dongle_handle_disassociation(dongle, wcid);
 	case IEEE80211_FTYPE_MGMT | XONE_MT_WLAN_RESERVED:
-		return xone_dongle_handle_reserved(dongle, skb,	wcid,
-						   hdr->addr2);
+		return xone_dongle_handle_client_command(dongle, skb, wcid,
+							 hdr->addr2);
 	}
 
 	return 0;

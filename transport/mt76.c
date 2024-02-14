@@ -252,30 +252,6 @@ static int xone_mt76_send_wlan(struct xone_mt76 *mt, struct sk_buff *skb)
 	return err;
 }
 
-static int xone_mt76_send_reserved(struct xone_mt76 *mt, u8 *addr,
-				   u8 *data, int len)
-{
-	struct sk_buff *skb;
-	struct ieee80211_hdr_3addr hdr = {};
-
-	skb = xone_mt76_alloc_message(sizeof(struct mt76_txwi) + sizeof(hdr) +
-				      len, GFP_KERNEL);
-	if (!skb)
-		return -ENOMEM;
-
-	hdr.frame_control = cpu_to_le16(IEEE80211_FTYPE_MGMT |
-					XONE_MT_WLAN_RESERVED);
-	memcpy(hdr.addr1, addr, ETH_ALEN);
-	memcpy(hdr.addr2, mt->address, ETH_ALEN);
-	memcpy(hdr.addr3, mt->address, ETH_ALEN);
-
-	skb_reserve(skb, sizeof(struct mt76_txwi));
-	skb_put_data(skb, &hdr, sizeof(hdr));
-	skb_put_data(skb, data, sizeof(data));
-
-	return xone_mt76_send_wlan(mt, skb);
-}
-
 static int xone_mt76_select_function(struct xone_mt76 *mt,
 				     enum mt76_mcu_function func, u32 val)
 {
@@ -1091,12 +1067,29 @@ int xone_mt76_set_pairing(struct xone_mt76 *mt, bool enable)
 
 int xone_mt76_pair_client(struct xone_mt76 *mt, u8 *addr)
 {
-	u8 data[] = {
-		0x70, 0x02, 0x00, 0x45, 0x55, 0x01, 0x0f, 0x8f,
-		0xff, 0x87, 0x1f,
-	};
+	struct sk_buff *skb;
+	struct ieee80211_hdr_3addr hdr = {};
+	u8 data[] = { 0x00, 0x45, 0x55, 0x01, 0x0f, 0x8f, 0xff, 0x87, 0x1f };
 
-	return xone_mt76_send_reserved(mt, addr, data, sizeof(data));
+	skb = xone_mt76_alloc_message(sizeof(struct mt76_txwi) + sizeof(hdr) +
+				      sizeof(u8) * 2 + sizeof(data),
+				      GFP_KERNEL);
+	if (!skb)
+		return -ENOMEM;
+
+	hdr.frame_control = cpu_to_le16(IEEE80211_FTYPE_MGMT |
+					XONE_MT_WLAN_RESERVED);
+	memcpy(hdr.addr1, addr, ETH_ALEN);
+	memcpy(hdr.addr2, mt->address, ETH_ALEN);
+	memcpy(hdr.addr3, mt->address, ETH_ALEN);
+
+	skb_reserve(skb, sizeof(struct mt76_txwi));
+	skb_put_data(skb, &hdr, sizeof(hdr));
+	skb_put_u8(skb, XONE_MT_WLAN_RESERVED);
+	skb_put_u8(skb, XONE_MT_CLIENT_PAIR_RESP);
+	skb_put_data(skb, data, sizeof(data));
+
+	return xone_mt76_send_wlan(mt, skb);
 }
 
 int xone_mt76_associate_client(struct xone_mt76 *mt, u8 wcid, u8 *addr)
@@ -1144,6 +1137,49 @@ err_free_skb:
 	return err;
 }
 
+int xone_mt76_send_client_command(struct xone_mt76 *mt, u8 wcid, u8 *addr,
+				  enum xone_mt76_client_command cmd,
+				  u8 *data, int len)
+{
+	struct sk_buff *skb;
+	struct mt76_txwi txwi = {};
+	struct ieee80211_hdr_3addr hdr = {};
+	u8 info[] = {
+		0x00, 0x00, 0x00, wcid - 1, 0x00, 0x00, 0x00, 0x00,
+	};
+
+	skb = xone_mt76_alloc_message(sizeof(info) + sizeof(txwi) +
+				      sizeof(hdr) + sizeof(u8) * 2 + len,
+				      GFP_KERNEL);
+	if (!skb)
+		return -ENOMEM;
+
+	/* wait for acknowledgment */
+	txwi.flags = cpu_to_le16(FIELD_PREP(MT_TXWI_FLAGS_MPDU_DENSITY,
+					    IEEE80211_HT_MPDU_DENSITY_4));
+	txwi.rate = cpu_to_le16(FIELD_PREP(MT_RXWI_RATE_PHY, MT_PHY_TYPE_OFDM));
+	txwi.ack_ctl = MT_TXWI_ACK_CTL_REQ;
+	txwi.wcid = wcid - 1;
+	txwi.len_ctl = cpu_to_le16(sizeof(hdr) + sizeof(u8) * 2 + len);
+
+	hdr.frame_control = cpu_to_le16(IEEE80211_FTYPE_MGMT |
+					XONE_MT_WLAN_RESERVED);
+	memcpy(hdr.addr1, addr, ETH_ALEN);
+	memcpy(hdr.addr2, mt->address, ETH_ALEN);
+	memcpy(hdr.addr3, mt->address, ETH_ALEN);
+
+	skb_put_data(skb, info, sizeof(info));
+	skb_put_data(skb, &txwi, sizeof(txwi));
+	skb_put_data(skb, &hdr, sizeof(hdr));
+	skb_put_u8(skb, XONE_MT_WLAN_RESERVED);
+	skb_put_u8(skb, cmd);
+
+	if (data)
+		skb_put_data(skb, data, len);
+
+	return xone_mt76_send_command(mt, skb, 0);
+}
+
 int xone_mt76_set_client_key(struct xone_mt76 *mt, u8 wcid, u8 *key, int len)
 {
 	u8 iv[] = { 0x01, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00 };
@@ -1165,14 +1201,6 @@ int xone_mt76_set_client_key(struct xone_mt76 *mt, u8 wcid, u8 *key, int len)
 
 	return xone_mt76_write_burst(mt, MT_WCID_ATTR(wcid),
 				     &attr, sizeof(attr));
-}
-
-int xone_mt76_enable_client_encryption(struct xone_mt76 *mt, u8 *addr)
-{
-	u8 data[] = { 0x70, 0x10 };
-
-	/* enable encryption on client side */
-	return xone_mt76_send_reserved(mt, addr, data, sizeof(data));
 }
 
 int xone_mt76_remove_client(struct xone_mt76 *mt, u8 wcid)
