@@ -14,33 +14,33 @@ enum gip_drums_button {
 	GIP_DM_BTN_VIEW = BIT(3),
 	GIP_DM_BTN_A = BIT(4),
 	GIP_DM_BTN_B = BIT(5),
-	GIP_DM_BTN_X = BIT(6),
-	GIP_DM_BTN_Y = BIT(7),
+	GIP_DM_BTN_X = BIT(7),
+	GIP_DM_BTN_Y = BIT(6),
 	GIP_DM_BTN_DPAD_U = BIT(8),
 	GIP_DM_BTN_DPAD_D = BIT(9),
 	GIP_DM_BTN_DPAD_L = BIT(10),
 	GIP_DM_BTN_DPAD_R = BIT(11),
+	GIP_DM_BTN_KICK_1 = BIT(12),
+	GIP_DM_BTN_KICK_2 = BIT(13),
 };
 
-enum gip_drums_tom {
-	GIP_DM_TOM_RED = BIT(0),
-	GIP_DM_TOM_YELLOW = BIT(1),
-	GIP_DM_TOM_BLUE = BIT(2),
-	GIP_DM_TOM_GREEN = BIT(3),
-	GIP_DM_TOM_ORANGE = BIT(4),
-	GIP_DM_TOM_ORANGEOPT = BIT(5),
+enum gip_drums_pad {
+	GIP_DM_PAD_RED = BIT(4) | BIT(5) | BIT(6),
+	GIP_DM_PAD_YELLOW = BIT(0) | BIT(1) | BIT(2),
+	GIP_DM_PAD_BLUE = BIT(12) | BIT(13) | BIT(14),
+	GIP_DM_PAD_GREEN = BIT(8) | BIT(9) | BIT(10),
 };
 
 enum gip_drums_cymbal {
-	GIP_DM_CBL_YELLOW = BIT(0),
-	GIP_DM_CBL_BLUE = BIT(1),
-	GIP_DM_CBL_GREEN = BIT(2),
+	GIP_DM_CBL_YELLOW = BIT(4) | BIT(5) | BIT(6),
+	GIP_DM_CBL_BLUE = BIT(0) | BIT(1) | BIT(2),
+	GIP_DM_CBL_GREEN = BIT(12) | BIT(13) | BIT(14),
 };
 
 struct gip_drums_pkt_input {
 	__le16 buttons;
-	u8 toms;
-	u8 cymbals;
+	__le16 pads;
+	__le16 cymbals;
 } __packed;
 
 struct gip_drums {
@@ -118,24 +118,15 @@ static int gip_drums_op_input(struct gip_client *client, void *data, u32 len)
 	input_report_key(dev, BTN_B, buttons & GIP_DM_BTN_B);
 	input_report_key(dev, BTN_X, buttons & GIP_DM_BTN_X);
 	input_report_key(dev, BTN_Y, buttons & GIP_DM_BTN_Y);
-	input_report_key(dev, BTN_TRIGGER_HAPPY1,
-			 pkt->toms & GIP_DM_TOM_RED);
-	input_report_key(dev, BTN_TRIGGER_HAPPY2,
-			 pkt->toms & GIP_DM_TOM_YELLOW);
-	input_report_key(dev, BTN_TRIGGER_HAPPY3,
-			 pkt->toms & GIP_DM_TOM_BLUE);
-	input_report_key(dev, BTN_TRIGGER_HAPPY4,
-			 pkt->toms & GIP_DM_TOM_GREEN);
-	input_report_key(dev, BTN_TRIGGER_HAPPY5,
-			 pkt->toms & GIP_DM_TOM_ORANGE);
-	input_report_key(dev, BTN_TRIGGER_HAPPY6,
-			 pkt->toms & GIP_DM_TOM_ORANGEOPT);
-	input_report_key(dev, BTN_TRIGGER_HAPPY7,
-			 pkt->cymbals & GIP_DM_CBL_YELLOW);
-	input_report_key(dev, BTN_TRIGGER_HAPPY8,
-			 pkt->cymbals & GIP_DM_CBL_BLUE);
-	input_report_key(dev, BTN_TRIGGER_HAPPY9,
-			 pkt->cymbals & GIP_DM_CBL_GREEN);
+	input_report_key(dev, BTN_TRIGGER_HAPPY5, buttons & GIP_DM_BTN_KICK_1);
+	input_report_key(dev, BTN_TRIGGER_HAPPY6, buttons & GIP_DM_BTN_KICK_2);
+	input_report_key(dev, BTN_TRIGGER_HAPPY1, pkt->pads & GIP_DM_PAD_RED);
+	input_report_key(dev, BTN_TRIGGER_HAPPY2, pkt->pads & GIP_DM_PAD_YELLOW);
+	input_report_key(dev, BTN_TRIGGER_HAPPY3, pkt->pads & GIP_DM_PAD_BLUE);
+	input_report_key(dev, BTN_TRIGGER_HAPPY4, pkt->pads & GIP_DM_PAD_GREEN);
+	input_report_key(dev, BTN_TRIGGER_HAPPY7, pkt->cymbals & GIP_DM_CBL_YELLOW);
+	input_report_key(dev, BTN_TRIGGER_HAPPY8, pkt->cymbals & GIP_DM_CBL_BLUE);
+	input_report_key(dev, BTN_TRIGGER_HAPPY9, pkt->cymbals & GIP_DM_CBL_GREEN);
 	input_report_abs(dev, ABS_HAT0X, !!(buttons & GIP_DM_BTN_DPAD_R) -
 					 !!(buttons & GIP_DM_BTN_DPAD_L));
 	input_report_abs(dev, ABS_HAT0Y, !!(buttons & GIP_DM_BTN_DPAD_D) -
