@@ -201,9 +201,6 @@ static int gip_auth2_send_hello(struct gip_auth *auth)
 {
 	struct gip_auth2_pkt_host_hello pkt = {};
 
-	/* reset transcript after protocol upgrade */
-	crypto_shash_init(auth->shash_transcript);
-
 	get_random_bytes(auth->random_host, sizeof(auth->random_host));
 	memcpy(pkt.random, auth->random_host, sizeof(pkt.random));
 
@@ -564,7 +561,9 @@ static int gip_auth_process_pkt_data(struct gip_auth *auth, void *data, u32 len)
 
 	/* client uses auth v2 */
 	if (hdr->handshake.command != hdr->data.command) {
+		/* reset transcript hash and restart handshake */
 		dev_dbg(&auth->client->dev, "%s: protocol upgrade\n", __func__);
+		crypto_shash_init(auth->shash_transcript);
 		return gip_auth2_send_hello(auth);
 	}
 
