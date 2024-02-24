@@ -257,9 +257,11 @@ static int gip_auth2_handle_pkt_pubkey(struct gip_auth *auth,
 	return 0;
 }
 
-static int gip_auth2_compute_master_secret(struct gip_auth *auth,
-					   u8 *pubkey, int len)
+static void gip_auth2_exchange_ecdh(struct work_struct *work)
 {
+	struct gip_auth *auth = container_of(work, typeof(*auth),
+					     work_exchange_ecdh);
+	struct gip_auth2_pkt_host_pubkey pkt = {};
 	u8 random[GIP_AUTH_RANDOM_LEN * 2];
 	u8 secret[GIP_AUTH2_SECRET_LEN];
 	int err;
@@ -268,45 +270,30 @@ static int gip_auth2_compute_master_secret(struct gip_auth *auth,
 	memcpy(random + sizeof(auth->random_host), auth->random_client,
 	       sizeof(auth->random_client));
 
-	err = gip_auth_compute_ecdh(auth->pubkey_client2, pubkey,
-				    len, secret);
-	if (err)
-		return err;
-
-	return gip_auth_compute_prf(auth->shash_prf, "Master Secret",
-				    secret, sizeof(secret),
-				    random, sizeof(random),
-				    auth->master_secret,
-				    sizeof(auth->master_secret));
-}
-
-static void gip_auth2_exchange_ecdh(struct work_struct *work)
-{
-	struct gip_auth *auth = container_of(work, typeof(*auth),
-					     work_exchange_ecdh);
-	struct gip_auth2_pkt_host_pubkey *pkt;
-	int err;
-
-	pkt = kzalloc(sizeof(*pkt), GFP_KERNEL);
-	if (!pkt)
-		return;
-
-	err = gip_auth2_compute_master_secret(auth, pkt->pubkey,
-					      sizeof(pkt->pubkey));
+	err = gip_auth_compute_ecdh(auth->pubkey_client2, pkt.pubkey,
+				    sizeof(pkt.pubkey), secret);
 	if (err) {
-		dev_err(&auth->client->dev, "%s: compute secret failed\n",
-			__func__);
-		goto err_free_pkt;
+		dev_err(&auth->client->dev, "%s: compute ECDH failed: %d\n",
+			__func__, err);
+		return;
+	}
+
+	err = gip_auth_compute_prf(auth->shash_prf, "Master Secret",
+				   secret, sizeof(secret),
+				   random, sizeof(random),
+				   auth->master_secret,
+				   sizeof(auth->master_secret));
+	if (err) {
+		dev_err(&auth->client->dev, "%s: compute PRF failed: %d\n",
+			__func__, err);
+		return;
 	}
 
 	err = gip_auth_send_pkt(auth, GIP_AUTH2_CMD_HOST_PUBKEY,
-				pkt, sizeof(*pkt));
+				&pkt, sizeof(pkt));
 	if (err)
 		dev_err(&auth->client->dev, "%s: send pkt failed: %d\n",
 			__func__, err);
-
-err_free_pkt:
-	kfree(pkt);
 }
 
 static int gip_auth_send_pkt_hello(struct gip_auth *auth)
@@ -457,68 +444,46 @@ static int gip_auth_handle_pkt_finish(struct gip_auth *auth,
 	return 0;
 }
 
-static int gip_auth_compute_master_secret(struct gip_auth *auth,
-					  u8 *encrypted_pms, int len)
+static void gip_auth_exchange_rsa(struct work_struct *work)
 {
+	struct gip_auth *auth = container_of(work, typeof(*auth),
+					     work_exchange_rsa);
+	struct gip_auth_pkt_host_secret pkt = {};
 	u8 random[GIP_AUTH_RANDOM_LEN * 2];
-	u8 *pms;
+	u8 pms[GIP_AUTH_SECRET_LEN];
 	int err;
 
 	memcpy(random, auth->random_host, sizeof(auth->random_host));
 	memcpy(random + sizeof(auth->random_host), auth->random_client,
 	       sizeof(auth->random_client));
 
-	pms = kmalloc(GIP_AUTH_SECRET_LEN, GFP_KERNEL);
-	if (!pms)
-		return -ENOMEM;
-
 	/* get random premaster secret */
 	get_random_bytes(pms, sizeof(pms));
 
 	err = gip_auth_encrypt_rsa(auth->pubkey_client, GIP_AUTH_PUBKEY_LEN,
-				   pms, GIP_AUTH_SECRET_LEN, encrypted_pms,
-				   len);
-	if (err)
-		goto err_free_pms;
+				   pms, GIP_AUTH_SECRET_LEN, pkt.encrypted_pms,
+				   sizeof(pkt.encrypted_pms));
+	if (err) {
+		dev_err(&auth->client->dev, "%s: encrypt RSA failed: %d\n",
+			__func__, err);
+		return;
+	}
 
 	err = gip_auth_compute_prf(auth->shash_prf, "Master Secret",
 				   pms, sizeof(pms), random, sizeof(random),
 				   auth->master_secret,
 				   sizeof(auth->master_secret));
-
-err_free_pms:
-	kfree(pms);
-
-	return err;
-}
-
-static void gip_auth_exchange_rsa(struct work_struct *work)
-{
-	struct gip_auth *auth = container_of(work, typeof(*auth),
-					     work_exchange_rsa);
-	struct gip_auth_pkt_host_secret *pkt;
-	int err;
-
-	pkt = kzalloc(sizeof(*pkt), GFP_KERNEL);
-	if (!pkt)
-		return;
-
-	err = gip_auth_compute_master_secret(auth, pkt->encrypted_pms,
-					     sizeof(pkt->encrypted_pms));
 	if (err) {
-		dev_err(&auth->client->dev, "%s: compute secret failed\n",
-			__func__);
-		goto err_free_pkt;
+		dev_err(&auth->client->dev, "%s: compute PRF failed: %d\n",
+			__func__, err);
+		return;
 	}
 
 	err = gip_auth_send_pkt(auth, GIP_AUTH_CMD_HOST_SECRET,
-				pkt, sizeof(*pkt));
+				&pkt, sizeof(pkt));
 	if (err)
 		dev_err(&auth->client->dev, "%s: send pkt failed: %d\n",
 			__func__, err);
-
-err_free_pkt:
-	kfree(pkt);
 }
 
 static void gip_auth_complete_handshake(struct work_struct *work)
