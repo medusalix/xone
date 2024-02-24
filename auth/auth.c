@@ -590,8 +590,14 @@ int gip_auth_process_pkt(struct gip_auth *auth, void *data, u32 len)
 	if (hdr->error)
 		return -EPROTO;
 
-	if (hdr->options & GIP_AUTH_OPT_ACKNOWLEDGE)
-		return gip_auth_handle_pkt_acknowledge(auth);
+	if (hdr->options & GIP_AUTH_OPT_ACKNOWLEDGE) {
+		if (hdr->command == 0x01)
+			return gip_auth_handle_pkt_acknowledge(auth);
+
+		dev_err(&auth->client->dev, "%s: handshake failed: 0x%02x\n",
+			__func__, hdr->command);
+		return -EPROTO;
+	}
 
 	return gip_auth_process_pkt_data(auth, data, len);
 }
