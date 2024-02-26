@@ -550,7 +550,6 @@ static const struct usb_device_id xone_wired_id_table[] = {
 	{ XONE_WIRED_VENDOR(0x0e6f) }, /* PDP */
 	{ XONE_WIRED_VENDOR(0x0f0d) }, /* Hori */
 	{ XONE_WIRED_VENDOR(0x1532) }, /* Razer */
-	{ XONE_WIRED_VENDOR(0x24c6) }, /* PowerA */
 	{ XONE_WIRED_VENDOR(0x20d6) }, /* BDA */
 	{ XONE_WIRED_VENDOR(0x044f) }, /* Thrustmaster */
 	{ XONE_WIRED_VENDOR(0x10f5) }, /* Turtle Beach */
