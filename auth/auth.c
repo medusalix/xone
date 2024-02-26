@@ -457,8 +457,9 @@ static void gip_auth_exchange_rsa(struct work_struct *work)
 	/* get random premaster secret */
 	get_random_bytes(pms, sizeof(pms));
 
-	err = gip_auth_encrypt_rsa(auth->pubkey_client, GIP_AUTH_PUBKEY_LEN,
-				   pms, GIP_AUTH_SECRET_LEN, pkt.encrypted_pms,
+	err = gip_auth_encrypt_rsa(auth->pubkey_client,
+				   sizeof(auth->pubkey_client),
+				   pms, sizeof(pms), pkt.encrypted_pms,
 				   sizeof(pkt.encrypted_pms));
 	if (err) {
 		dev_err(&auth->client->dev, "%s: encrypt RSA failed: %d\n",
