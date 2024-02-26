@@ -979,7 +979,6 @@ static int xone_dongle_suspend(struct usb_interface *intf, pm_message_t message)
 
 	usb_kill_anchored_urbs(&dongle->urbs_in_busy);
 	usb_kill_anchored_urbs(&dongle->urbs_out_busy);
-	flush_workqueue(dongle->event_wq);
 	cancel_delayed_work_sync(&dongle->pairing_work);
 
 	return xone_mt76_suspend_radio(&dongle->mt);
