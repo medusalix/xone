@@ -93,11 +93,18 @@ int gip_auth_encrypt_rsa(u8 *key, int key_len,
 	struct akcipher_request *req;
 	struct scatterlist src, dest;
 	DECLARE_CRYPTO_WAIT(wait);
+	u8 *buf;
 	int err;
 
+	buf = kzalloc(out_len, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
 	tfm = crypto_alloc_akcipher("pkcs1pad(rsa,sha256)", 0, 0);
-	if (IS_ERR(tfm))
-		return PTR_ERR(tfm);
+	if (IS_ERR(tfm)) {
+		err = PTR_ERR(tfm);
+		goto err_free_buf;
+	}
 
 	err = crypto_akcipher_set_pub_key(tfm, key, key_len);
 	if (err)
@@ -110,17 +117,21 @@ int gip_auth_encrypt_rsa(u8 *key, int key_len,
 	}
 
 	sg_init_one(&src, in, in_len);
-	sg_init_one(&dest, out, out_len);
+	sg_init_one(&dest, buf, out_len);
 
 	akcipher_request_set_crypt(req, &src, &dest, in_len, out_len);
 	akcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
 				      crypto_req_done, &wait);
 	err = crypto_wait_req(crypto_akcipher_encrypt(req), &wait);
+	if (!err)
+		memcpy(out, buf, out_len);
 
 	akcipher_request_free(req);
 
 err_free_tfm:
 	crypto_free_akcipher(tfm);
+err_free_buf:
+	kfree(buf);
 
 	return err;
 }
