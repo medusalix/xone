@@ -9,24 +9,24 @@
 #include "common.h"
 #include "../auth/auth.h"
 
-#define GIP_JAG_NAME "PDP Rock Band 4 Jaguar"
+#define GIP_JA_NAME "PDP Rock Band 4 Jaguar"
 
 enum gip_jaguar_button {
-	GIP_JAG_BTN_MENU = BIT(2),
-	GIP_JAG_BTN_VIEW = BIT(3),
-	GIP_JAG_BTN_DPAD_U = BIT(8),
-	GIP_JAG_BTN_DPAD_D = BIT(9),
-	GIP_JAG_BTN_DPAD_L = BIT(10),
-	GIP_JAG_BTN_DPAD_R = BIT(11),
+	GIP_JA_BTN_MENU = BIT(2),
+	GIP_JA_BTN_VIEW = BIT(3),
+	GIP_JA_BTN_DPAD_U = BIT(8),
+	GIP_JA_BTN_DPAD_D = BIT(9),
+	GIP_JA_BTN_DPAD_L = BIT(10),
+	GIP_JA_BTN_DPAD_R = BIT(11),
 };
 
 enum gip_jaguar_fret {
-	GIP_JAG_FRET_GREEN = BIT(4),
-	GIP_JAG_FRET_RED = BIT(5),
-	GIP_JAG_FRET_BLUE = BIT(6),
-	GIP_JAG_FRET_YELLOW = BIT(7),
-	GIP_JAG_FRET_ORANGE = BIT(12),
-	GIP_JAG_FRET_LOWER = BIT(14),
+	GIP_JA_FRET_GREEN = BIT(4),
+	GIP_JA_FRET_RED = BIT(5),
+	GIP_JA_FRET_BLUE = BIT(6),
+	GIP_JA_FRET_YELLOW = BIT(7),
+	GIP_JA_FRET_ORANGE = BIT(12),
+	GIP_JA_FRET_LOWER = BIT(14),
 };
 
 struct gip_jaguar_pkt_input {
@@ -108,38 +108,41 @@ static int gip_jaguar_op_input(struct gip_client *client, void *data, u32 len)
 	struct gip_jaguar_pkt_input *pkt = data;
 	struct input_dev *dev = guitar->input.dev;
 	u16 buttons = le16_to_cpu(pkt->buttons);
+	bool lower;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
-	input_report_key(dev, BTN_START, buttons & GIP_JAG_BTN_MENU);
-	input_report_key(dev, BTN_SELECT, buttons & GIP_JAG_BTN_VIEW);
+	lower = buttons & GIP_JA_FRET_LOWER;
+
+	input_report_key(dev, BTN_START, buttons & GIP_JA_BTN_MENU);
+	input_report_key(dev, BTN_SELECT, buttons & GIP_JA_BTN_VIEW);
 	input_report_key(dev, BTN_TRIGGER_HAPPY1,
-			 !!(buttons & GIP_JAG_FRET_GREEN) & !(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_GREEN) && !lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY2,
-			 !!(buttons & GIP_JAG_FRET_RED) & !(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_RED) && !lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY3,
-			 !!(buttons & GIP_JAG_FRET_YELLOW) & !(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_YELLOW) && !lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY4,
-			 !!(buttons & GIP_JAG_FRET_BLUE) & !(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_BLUE) && !lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY5,
-			 !!(buttons & GIP_JAG_FRET_ORANGE) & !(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_ORANGE) && !lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY6,
-			 !!(buttons & GIP_JAG_FRET_GREEN) & !!(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_GREEN) && lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY7,
-			 !!(buttons & GIP_JAG_FRET_RED) & !!(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_RED) && lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY8,
-			 !!(buttons & GIP_JAG_FRET_YELLOW) & !!(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_YELLOW) && lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY9,
-			 !!(buttons & GIP_JAG_FRET_BLUE) & !!(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_BLUE) && lower);
 	input_report_key(dev, BTN_TRIGGER_HAPPY10,
-			 !!(buttons & GIP_JAG_FRET_ORANGE) & !!(buttons & GIP_JAG_FRET_LOWER));
+			 (buttons & GIP_JA_FRET_ORANGE) && lower);
 	input_report_abs(dev, ABS_Y, pkt->whammy);
 	input_report_abs(dev, ABS_Z, pkt->tilt);
-	input_report_abs(dev, ABS_HAT0X, !!(buttons & GIP_JAG_BTN_DPAD_R) -
-					 !!(buttons & GIP_JAG_BTN_DPAD_L));
-	input_report_abs(dev, ABS_HAT0Y, !!(buttons & GIP_JAG_BTN_DPAD_D) -
-					 !!(buttons & GIP_JAG_BTN_DPAD_U));
+	input_report_abs(dev, ABS_HAT0X, !!(buttons & GIP_JA_BTN_DPAD_R) -
+					 !!(buttons & GIP_JA_BTN_DPAD_L));
+	input_report_abs(dev, ABS_HAT0Y, !!(buttons & GIP_JA_BTN_DPAD_D) -
+					 !!(buttons & GIP_JA_BTN_DPAD_U));
 	input_sync(dev);
 
 	return 0;
@@ -160,7 +163,7 @@ static int gip_jaguar_probe(struct gip_client *client)
 	if (err)
 		return err;
 
-	err = gip_init_battery(&guitar->battery, client, GIP_JAG_NAME);
+	err = gip_init_battery(&guitar->battery, client, GIP_JA_NAME);
 	if (err)
 		return err;
 
@@ -168,7 +171,7 @@ static int gip_jaguar_probe(struct gip_client *client)
 	if (err)
 		return err;
 
-	err = gip_init_input(&guitar->input, client, GIP_JAG_NAME);
+	err = gip_init_input(&guitar->input, client, GIP_JA_NAME);
 	if (err)
 		return err;
 
@@ -182,7 +185,7 @@ static int gip_jaguar_probe(struct gip_client *client)
 }
 
 static struct gip_driver gip_jaguar_driver = {
-	.name = "xone-gip-jaguar",
+	.name = "xone-gip-pdp-jaguar",
 	.class = "PDP.Xbox.Guitar.Jaguar",
 	.ops = {
 		.battery = gip_jaguar_op_battery,
@@ -197,6 +200,6 @@ module_gip_driver(gip_jaguar_driver);
 MODULE_ALIAS("gip:PDP.Xbox.Guitar.Jaguar");
 MODULE_AUTHOR("Severin von Wnuck-Lipinski <severinvonw@outlook.de>");
 MODULE_AUTHOR("Scott K Logan <logans@cottsay.net>");
-MODULE_DESCRIPTION("xone GIP jaguar guitar driver");
+MODULE_DESCRIPTION("xone GIP PDP Jaguar driver");
 MODULE_VERSION("#VERSION#");
 MODULE_LICENSE("GPL");
