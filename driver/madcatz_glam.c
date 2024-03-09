@@ -133,12 +133,12 @@ static int gip_glam_op_input(struct gip_client *client, void *data, u32 len)
 	input_report_key(dev, BTN_Y, buttons & GIP_GL_BTN_Y);
 	input_report_key(dev, BTN_TRIGGER_HAPPY1, buttons & GIP_GL_BTN_KICK_1);
 	input_report_key(dev, BTN_TRIGGER_HAPPY2, buttons & GIP_GL_BTN_KICK_2);
-	input_report_key(dev, BTN_TRIGGER_HAPPY3, pads & GIP_GL_PAD_YELLOW);
-	input_report_key(dev, BTN_TRIGGER_HAPPY4, pads & GIP_GL_PAD_RED);
-	input_report_key(dev, BTN_TRIGGER_HAPPY5, pads & GIP_GL_PAD_GREEN);
-	input_report_key(dev, BTN_TRIGGER_HAPPY6, pads & GIP_GL_PAD_BLUE);
-	input_report_key(dev, BTN_TRIGGER_HAPPY7, cymbals & GIP_GL_CBL_BLUE);
-	input_report_key(dev, BTN_TRIGGER_HAPPY8, cymbals & GIP_GL_CBL_YELLOW);
+	input_report_key(dev, BTN_TRIGGER_HAPPY3, pads & GIP_GL_PAD_RED);
+	input_report_key(dev, BTN_TRIGGER_HAPPY4, pads & GIP_GL_PAD_YELLOW);
+	input_report_key(dev, BTN_TRIGGER_HAPPY5, pads & GIP_GL_PAD_BLUE);
+	input_report_key(dev, BTN_TRIGGER_HAPPY6, pads & GIP_GL_PAD_GREEN);
+	input_report_key(dev, BTN_TRIGGER_HAPPY7, cymbals & GIP_GL_CBL_YELLOW);
+	input_report_key(dev, BTN_TRIGGER_HAPPY8, cymbals & GIP_GL_CBL_BLUE);
 	input_report_key(dev, BTN_TRIGGER_HAPPY9, cymbals & GIP_GL_CBL_GREEN);
 	input_report_abs(dev, ABS_HAT0X, !!(buttons & GIP_GL_BTN_DPAD_R) -
 					 !!(buttons & GIP_GL_BTN_DPAD_L));
