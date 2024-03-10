@@ -6,4 +6,5 @@ xone-gip-headset-y := driver/headset.o
 xone-gip-chatpad-y := driver/chatpad.o
 xone-gip-madcatz-strat-y := driver/madcatz_strat.o
 xone-gip-madcatz-glam-y := driver/madcatz_glam.o
-obj-m := xone-wired.o xone-dongle.o xone-gip.o xone-gip-gamepad.o xone-gip-headset.o xone-gip-chatpad.o xone-gip-madcatz-strat.o xone-gip-madcatz-glam.o
+xone-gip-pdp-jaguar-y := driver/pdp_jaguar.o
+obj-m := xone-wired.o xone-dongle.o xone-gip.o xone-gip-gamepad.o xone-gip-headset.o xone-gip-chatpad.o xone-gip-madcatz-strat.o xone-gip-madcatz-glam.o xone-gip-pdp-jaguar.o

@@ -39,6 +39,7 @@ Always update your Xbox devices to the latest firmware version!
 - [x] Xbox Adaptive Controller
 - [x] Mad Catz Rock Band 4 Wireless Stratocaster
 - [x] Mad Catz Rock Band 4 Wireless Drum Kit
+- [x] PDP Rock Band 4 Wireless Fender Jaguar
 
 ## Releases
 
