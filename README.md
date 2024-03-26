@@ -28,18 +28,19 @@ Always update your Xbox devices to the latest firmware version!
 - [x] Gamepads
     - [x] Xbox One Controllers
     - [x] Xbox Series X|S Controllers
+    - [x] Xbox Adaptive Controller
     - [x] Third party controllers (PowerA, PDP, etc.)
 - [x] Headsets
     - [x] Xbox One Chat Headset
     - [x] Xbox One Stereo Headset (adapter or jack)
     - [x] Xbox Wireless Headset
     - [x] Third party wireless headsets (SteelSeries, Razer, etc.)
-- [ ] Third party racing wheels (Thrustmaster, Logitech, etc.)
+- [x] Guitars & Drums
+    - [x] Mad Catz Rock Band 4 Wireless Fender Stratocaster
+    - [x] Mad Catz Rock Band 4 Wireless Drum Kit
+    - [x] PDP Rock Band 4 Wireless Fender Jaguar
 - [x] Xbox One Chatpad
-- [x] Xbox Adaptive Controller
-- [x] Mad Catz Rock Band 4 Wireless Stratocaster
-- [x] Mad Catz Rock Band 4 Wireless Drum Kit
-- [x] PDP Rock Band 4 Wireless Fender Jaguar
+- [ ] Third party racing wheels (Thrustmaster, Logitech, etc.)
 
 ## Releases
 
