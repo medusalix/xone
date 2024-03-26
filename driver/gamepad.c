@@ -246,11 +246,13 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, u32 len)
 	struct gip_gamepad *gamepad = dev_get_drvdata(&client->dev);
 	struct gip_gamepad_pkt_input *pkt = data;
 	struct input_dev *dev = gamepad->input.dev;
-	u16 buttons = le16_to_cpu(pkt->buttons);
+	u16 buttons;
 	u8 share_offset = GIP_GP_BTN_SHARE_OFFSET;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
+
+	buttons = le16_to_cpu(pkt->buttons);
 
 	/* share button byte is always at fixed offset from end of packet */
 	if (gamepad->supports_share) {

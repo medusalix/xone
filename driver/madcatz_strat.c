@@ -109,10 +109,12 @@ static int gip_strat_op_input(struct gip_client *client, void *data, u32 len)
 	struct gip_strat *strat = dev_get_drvdata(&client->dev);
 	struct gip_strat_pkt_input *pkt = data;
 	struct input_dev *dev = strat->input.dev;
-	u16 buttons = le16_to_cpu(pkt->buttons);
+	u16 buttons;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
+
+	buttons = le16_to_cpu(pkt->buttons);
 
 	input_report_key(dev, BTN_START, buttons & GIP_ST_BTN_MENU);
 	input_report_key(dev, BTN_SELECT, buttons & GIP_ST_BTN_VIEW);

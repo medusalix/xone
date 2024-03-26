@@ -107,12 +107,13 @@ static int gip_jaguar_op_input(struct gip_client *client, void *data, u32 len)
 	struct gip_jaguar *guitar = dev_get_drvdata(&client->dev);
 	struct gip_jaguar_pkt_input *pkt = data;
 	struct input_dev *dev = guitar->input.dev;
-	u16 buttons = le16_to_cpu(pkt->buttons);
+	u16 buttons;
 	bool lower;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
 
+	buttons = le16_to_cpu(pkt->buttons);
 	lower = buttons & GIP_JA_FRET_LOWER;
 
 	input_report_key(dev, BTN_START, buttons & GIP_JA_BTN_MENU);

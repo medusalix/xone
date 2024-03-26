@@ -118,12 +118,16 @@ static int gip_glam_op_input(struct gip_client *client, void *data, u32 len)
 	struct gip_glam *glam = dev_get_drvdata(&client->dev);
 	struct gip_glam_pkt_input *pkt = data;
 	struct input_dev *dev = glam->input.dev;
-	u16 buttons = le16_to_cpu(pkt->buttons);
-	u16 pads = le16_to_cpu(pkt->pads);
-	u16 cymbals = le16_to_cpu(pkt->cymbals);
+	u16 buttons;
+	u16 pads;
+	u16 cymbals;
 
 	if (len < sizeof(*pkt))
 		return -EINVAL;
+
+	buttons = le16_to_cpu(pkt->buttons);
+	pads = le16_to_cpu(pkt->pads);
+	cymbals = le16_to_cpu(pkt->cymbals);
 
 	input_report_key(dev, BTN_START, buttons & GIP_GL_BTN_MENU);
 	input_report_key(dev, BTN_SELECT, buttons & GIP_GL_BTN_VIEW);
