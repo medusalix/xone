@@ -631,7 +631,9 @@ static int xone_mt76_get_channel_power(struct xone_mt76 *mt,
 static int xone_mt76_evaluate_channels(struct xone_mt76 *mt)
 {
 	struct xone_mt76_channel *chan;
-	int i, err;
+	int i, err, pow = 0;
+
+	mt->channel = NULL;
 
 	memcpy(mt->channels, xone_mt76_channels, sizeof(xone_mt76_channels));
 
@@ -646,13 +648,20 @@ static int xone_mt76_evaluate_channels(struct xone_mt76 *mt)
 		err = xone_mt76_switch_channel(mt, chan);
 		if (err)
 			return err;
+		
+		/* pick the highest power channel seen first */
+		/* the last channel might not be the best one */
+		if (chan->power > pow) {
+			mt->channel = chan;
+			pow = chan->power;
+		}
 
 		dev_dbg(mt->dev, "%s: channel=%u, power=%u\n", __func__,
 			chan->index, chan->power);
 	}
 
-	/* the last channel might not be the best one */
-	mt->channel = chan;
+	if (mt->channel == NULL)
+		mt->channel = chan;
 
 	return 0;
 }
