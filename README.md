@@ -57,6 +57,7 @@ Any issues regarding the packaging should be reported to the respective maintain
 - DKMS
 - curl (for firmware download)
 - cabextract (for firmware extraction)
+- wireless-regdb (Needed for wireless frequency regulatory compliance.)
 
 ### Guide
 
