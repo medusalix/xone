@@ -95,6 +95,12 @@ Make sure to completely uninstall `xone` before updating:
 sudo ./uninstall.sh
 ```
 
+### Using Xbox 360 controllers with xone
+
+`xone` doesn't support Xbox 360 controllers at all. On top of that, `xone` needs to disable `xpad` driver to work properly, which would normally support Xbox 360 controllers. This is due to `xpad` also trying to handle Xbox One controllers, which `xone` aims to support.
+
+To fix that, there is a fork of `xpad` driver, called [`xpad-noone`](https://github.com/medusalix/xpad-noone) that has disabled support for Xbox One controllers, so it can coexist with `xone` driver. If you're using Xbox 360 controllers, it is recommended to use it to replace the standard `xpad` driver.
+
 ## Wireless pairing
 
 Xbox devices have to be paired to the wireless dongle. They will not automatically connect to the dongle if they have been previously plugged into a USB port or used via Bluetooth.
