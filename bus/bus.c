@@ -56,7 +56,11 @@ static struct device_type gip_client_type = {
 	.release = gip_client_release,
 };
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
 static int gip_bus_match(struct device *dev, struct device_driver *driver)
+#else
+static int gip_bus_match(struct device *dev, const struct device_driver *driver)
+#endif
 {
 	struct gip_client *client;
 	struct gip_driver *drv;
