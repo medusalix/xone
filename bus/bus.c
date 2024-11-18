@@ -56,7 +56,7 @@ static struct device_type gip_client_type = {
 	.release = gip_client_release,
 };
 
-static int gip_bus_match(struct device *dev, struct device_driver *driver)
+static int gip_bus_match(struct device *dev, const struct device_driver *driver)
 {
 	struct gip_client *client;
 	struct gip_driver *drv;
