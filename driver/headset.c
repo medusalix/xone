@@ -101,7 +101,11 @@ static int gip_headset_pcm_hw_params(struct snd_pcm_substream *sub,
 
 static int gip_headset_pcm_hw_free(struct snd_pcm_substream *sub)
 {
-	return snd_pcm_lib_free_vmalloc_buffer(sub);
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+		return snd_pcm_lib_free_vmalloc_buffer(sub);
+	#else
+		return 0; // No need to manually free the buffer in newer kernels
+	#endif
 }
 
 static int gip_headset_pcm_prepare(struct snd_pcm_substream *sub)
