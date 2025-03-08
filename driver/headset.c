@@ -5,6 +5,7 @@
 
 #include <linux/module.h>
 #include <linux/hrtimer.h>
+#include <linux/version.h>
 #include <sound/core.h>
 #include <sound/initval.h>
 #include <sound/pcm.h>
@@ -90,8 +91,12 @@ static int gip_headset_pcm_close(struct snd_pcm_substream *sub)
 static int gip_headset_pcm_hw_params(struct snd_pcm_substream *sub,
 				     struct snd_pcm_hw_params *params)
 {
-	return snd_pcm_lib_alloc_vmalloc_buffer(sub,
-						params_buffer_bytes(params));
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+		return snd_pcm_lib_alloc_vmalloc_buffer(sub, params_buffer_bytes(params));
+	#else
+		return snd_pcm_set_managed_buffer(sub, SNDRV_DMA_TYPE_VMALLOC, NULL,
+						  params_buffer_bytes(params), params_buffer_bytes(params));
+	#endif
 }
 
 static int gip_headset_pcm_hw_free(struct snd_pcm_substream *sub)
