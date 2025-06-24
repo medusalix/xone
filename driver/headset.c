@@ -5,6 +5,7 @@
 
 #include <linux/module.h>
 #include <linux/hrtimer.h>
+#include <linux/version.h>
 #include <sound/core.h>
 #include <sound/initval.h>
 #include <sound/pcm.h>
@@ -90,13 +91,23 @@ static int gip_headset_pcm_close(struct snd_pcm_substream *sub)
 static int gip_headset_pcm_hw_params(struct snd_pcm_substream *sub,
 				     struct snd_pcm_hw_params *params)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
+	/* In newer kernels, buffer allocation is handled automatically */
+	return 0;
+#else
 	return snd_pcm_lib_alloc_vmalloc_buffer(sub,
 						params_buffer_bytes(params));
+#endif
 }
 
 static int gip_headset_pcm_hw_free(struct snd_pcm_substream *sub)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
+	/* In newer kernels, buffer freeing is handled automatically */
+	return 0;
+#else
 	return snd_pcm_lib_free_vmalloc_buffer(sub);
+#endif
 }
 
 static int gip_headset_pcm_prepare(struct snd_pcm_substream *sub)
@@ -157,7 +168,11 @@ static const struct snd_pcm_ops gip_headset_pcm_ops = {
 	.prepare = gip_headset_pcm_prepare,
 	.trigger = gip_headset_pcm_trigger,
 	.pointer = gip_headset_pcm_pointer,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
+	/* .page callback not needed in newer kernels */
+#else
 	.page = snd_pcm_lib_get_vmalloc_page,
+#endif
 };
 
 static bool gip_headset_advance_pointer(struct gip_headset_stream *stream,
