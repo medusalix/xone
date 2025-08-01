@@ -924,6 +924,7 @@ static int xone_dongle_probe(struct usb_interface *intf,
 	dongle->mt.udev = interface_to_usbdev(intf);
 
 	usb_reset_device(dongle->mt.udev);
+	msleep(500);
 
 	dongle->event_wq = alloc_ordered_workqueue("xone_dongle", 0);
 	if (!dongle->event_wq)
