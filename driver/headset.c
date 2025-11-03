@@ -1,3 +1,5 @@
+#include <linux/timer.h>
+#include <linux/hrtimer.h>
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
@@ -5,6 +7,7 @@
 
 #include <linux/module.h>
 #include <linux/hrtimer.h>
+#include <linux/version.h>
 #include <sound/core.h>
 #include <sound/initval.h>
 #include <sound/pcm.h>
@@ -90,13 +93,21 @@ static int gip_headset_pcm_close(struct snd_pcm_substream *sub)
 static int gip_headset_pcm_hw_params(struct snd_pcm_substream *sub,
 				     struct snd_pcm_hw_params *params)
 {
-	return snd_pcm_lib_alloc_vmalloc_buffer(sub,
-						params_buffer_bytes(params));
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+		return snd_pcm_lib_alloc_vmalloc_buffer(sub, params_buffer_bytes(params));
+	#else
+		return snd_pcm_set_managed_buffer(sub, SNDRV_DMA_TYPE_VMALLOC, NULL,
+						  params_buffer_bytes(params), params_buffer_bytes(params));
+	#endif
 }
 
 static int gip_headset_pcm_hw_free(struct snd_pcm_substream *sub)
 {
-	return snd_pcm_lib_free_vmalloc_buffer(sub);
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+		return snd_pcm_lib_free_vmalloc_buffer(sub);
+	#else
+		return 0; // No need to manually free the buffer in newer kernels
+	#endif
 }
 
 static int gip_headset_pcm_prepare(struct snd_pcm_substream *sub)
@@ -157,7 +168,9 @@ static const struct snd_pcm_ops gip_headset_pcm_ops = {
 	.prepare = gip_headset_pcm_prepare,
 	.trigger = gip_headset_pcm_trigger,
 	.pointer = gip_headset_pcm_pointer,
-	.page = snd_pcm_lib_get_vmalloc_page,
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+		.page = snd_pcm_lib_get_vmalloc_page,  // Keep old function for older kernels
+	#endif
 };
 
 static bool gip_headset_advance_pointer(struct gip_headset_stream *stream,
@@ -459,8 +472,13 @@ static int gip_headset_probe(struct gip_client *client)
 	INIT_DELAYED_WORK(&headset->work_power_on, gip_headset_power_on);
 	INIT_WORK(&headset->work_register, gip_headset_register);
 
-	hrtimer_init(&headset->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,6,0)
+	#define hrtimer_init(timer, clock_id, mode) hrtimer_init_hres(timer, clock_id, mode)
+	#endif
+	/*
+	hrtimer_init_hres(&headset->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	headset->timer.function = gip_headset_send_samples;
+	*/
 
 	err = gip_enable_audio(client);
 	if (err)
