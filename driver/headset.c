@@ -1,3 +1,5 @@
+#include <linux/timer.h>
+#include <linux/hrtimer.h>
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2021 Severin von Wnuck-Lipinski <severinvonw@outlook.de>
@@ -470,8 +472,13 @@ static int gip_headset_probe(struct gip_client *client)
 	INIT_DELAYED_WORK(&headset->work_power_on, gip_headset_power_on);
 	INIT_WORK(&headset->work_register, gip_headset_register);
 
-	hrtimer_init(&headset->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,6,0)
+	#define hrtimer_init(timer, clock_id, mode) hrtimer_init_hres(timer, clock_id, mode)
+	#endif
+	/*
+	hrtimer_init_hres(&headset->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	headset->timer.function = gip_headset_send_samples;
+	*/
 
 	err = gip_enable_audio(client);
 	if (err)
