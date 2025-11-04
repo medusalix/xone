@@ -5,6 +5,7 @@
 
 #include <linux/module.h>
 #include <linux/hrtimer.h>
+#include <linux/version.h>
 #include <sound/core.h>
 #include <sound/initval.h>
 #include <sound/pcm.h>
@@ -90,13 +91,21 @@ static int gip_headset_pcm_close(struct snd_pcm_substream *sub)
 static int gip_headset_pcm_hw_params(struct snd_pcm_substream *sub,
 				     struct snd_pcm_hw_params *params)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
 	return snd_pcm_lib_alloc_vmalloc_buffer(sub,
 						params_buffer_bytes(params));
+#else
+	return 0; /* managed buffer allocation */
+#endif
 }
 
 static int gip_headset_pcm_hw_free(struct snd_pcm_substream *sub)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
 	return snd_pcm_lib_free_vmalloc_buffer(sub);
+#else
+	return 0; /* managed buffer deallocation */
+#endif
 }
 
 static int gip_headset_pcm_prepare(struct snd_pcm_substream *sub)
@@ -157,7 +166,9 @@ static const struct snd_pcm_ops gip_headset_pcm_ops = {
 	.prepare = gip_headset_pcm_prepare,
 	.trigger = gip_headset_pcm_trigger,
 	.pointer = gip_headset_pcm_pointer,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
 	.page = snd_pcm_lib_get_vmalloc_page,
+#endif
 };
 
 static bool gip_headset_advance_pointer(struct gip_headset_stream *stream,
@@ -273,6 +284,12 @@ static int gip_headset_init_pcm(struct gip_headset *headset)
 
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &gip_headset_pcm_ops);
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &gip_headset_pcm_ops);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+	/* Set up managed buffers for kernel 6.12+ */
+	snd_pcm_set_managed_buffer_all(pcm, SNDRV_DMA_TYPE_VMALLOC,
+				       NULL, 0, 0);
+#endif
 
 	return snd_card_register(card);
 }
