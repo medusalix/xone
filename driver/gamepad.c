@@ -14,7 +14,7 @@
 #define GIP_GP_NAME "Microsoft Xbox Controller"
 
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
-#define GIP_GP_RUMBLE_MAX 100
+#define GIP_GP_RUMBLE_MAX 255
 
 /* button offset from end of packet */
 #define GIP_GP_BTN_SHARE_OFFSET 18
