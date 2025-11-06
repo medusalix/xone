@@ -351,9 +351,9 @@ static int gip_send_pkt_simple(struct gip_client *client,
 	buf.length = hdr_len + hdr->packet_length;
 
 	/* debug message sent */
-	gip_dbg(client, "%s: cmd=0x%02x len=0x%04x seq=0x%02x offset=0x%04x\n",
-		__func__, hdr->command, buf.length, hdr->sequence,
-		hdr->chunk_offset);
+	// gip_dbg(client, "%s: cmd=0x%02x len=0x%04x seq=0x%02x offset=0x%04x\n",
+	// 	__func__, hdr->command, buf.length, hdr->sequence,
+	// 	hdr->chunk_offset);
 
 	/* always fails on adapter removal */
 	err = adap->ops->submit_buffer(adap, &buf);
@@ -416,8 +416,8 @@ static int gip_acknowledge_pkt(struct gip_client *client,
 	if ((ack->options & GIP_OPT_CHUNK) && buf)
 		pkt.remaining = cpu_to_le16(buf->length - len);
 
-	gip_dbg(client, "%s: ACME(host) command=0x%02x, length=0x%04x\n",
-		__func__, pkt.command, len);
+	// gip_dbg(client, "%s: ACME(host) command=0x%02x, length=0x%04x\n",
+	// 	__func__, pkt.command, len);
 
 	return gip_send_pkt(client, &hdr, &pkt);
 }
