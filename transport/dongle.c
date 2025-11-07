@@ -1186,6 +1186,7 @@ static int xone_dongle_resume(struct usb_interface *intf)
 		return 0;
 	}
 
+	msleep(1000);
 	while ((urb = usb_get_from_anchor(&dongle->urbs_in_idle))) {
 		usb_anchor_urb(urb, &dongle->urbs_in_busy);
 		usb_free_urb(urb);
