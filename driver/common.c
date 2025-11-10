@@ -207,12 +207,15 @@ int gip_init_input(struct gip_input *input, struct gip_client *client,
 	if (!input->dev->phys)
 		return -ENOMEM;
 
+	gip_send_get_serial_number(client);
+
 	input->dev->name = name;
 	input->dev->id.bustype = BUS_VIRTUAL;
 	input->dev->id.vendor = client->hardware.vendor;
 	input->dev->id.product = client->hardware.product;
 	input->dev->id.version = client->hardware.version;
 	input->dev->dev.parent = &client->dev;
+	input->dev->uniq = client->serial.data;
 
 	return 0;
 }
