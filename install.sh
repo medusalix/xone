@@ -12,7 +12,7 @@ if ! [ -x "$(command -v dkms)" ]; then
     exit 1
 fi
 
-if [ -n "$(dkms status xone)" ]; then
+if [ -n "$(dkms status|grep xone)" ]; then
     echo 'Driver is already installed!' >&2
     exit 1
 fi
