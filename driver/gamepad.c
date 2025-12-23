@@ -13,6 +13,13 @@
 
 #define GIP_GP_NAME "Microsoft Xbox Controller"
 
+#define GIP_VENDOR_MICROSOFT 0x045e
+#define GIP_PRODUCT_ELITE_SERIES_2 0x0b00
+// Various versions of the Elite Series 2 firmware have changed the way paddle
+// states are sent. Paddle support is only reported up to this firmware
+// version.
+#define GIP_ELITE_SERIES_2_MAX_FIRMWARE 0x04FF
+
 #define GIP_GP_RUMBLE_DELAY msecs_to_jiffies(10)
 #define GIP_GP_RUMBLE_MAX 100
 
@@ -42,6 +49,13 @@ enum gip_gamepad_button {
 	GIP_GP_BTN_BUMPER_R = BIT(13),
 	GIP_GP_BTN_STICK_L = BIT(14),
 	GIP_GP_BTN_STICK_R = BIT(15),
+};
+
+enum gip_gamepad_paddle {
+	GIP_GP_BTN_P1 = BIT(0),
+	GIP_GP_BTN_P2 = BIT(1),
+	GIP_GP_BTN_P3 = BIT(2),
+	GIP_GP_BTN_P4 = BIT(3),
 };
 
 enum gip_gamepad_motor {
@@ -87,6 +101,7 @@ struct gip_gamepad {
 
 	bool supports_share;
 	bool supports_dli;
+	bool supports_paddles;
 
 	struct gip_gamepad_rumble {
 		/* serializes access to rumble packet */
@@ -166,6 +181,7 @@ static int gip_gamepad_init_rumble(struct gip_gamepad *gamepad)
 static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 {
 	struct input_dev *dev = gamepad->input.dev;
+	struct gip_hardware hardware = gamepad->client->hardware;
 	int err;
 
 	gamepad->supports_share = gip_has_interface(gamepad->client,
@@ -173,8 +189,19 @@ static int gip_gamepad_init_input(struct gip_gamepad *gamepad)
 	gamepad->supports_dli = gip_has_interface(gamepad->client,
 						  &gip_gamepad_guid_dli);
 
+	gamepad->supports_paddles = hardware.vendor == GIP_VENDOR_MICROSOFT
+			&& hardware.product == GIP_PRODUCT_ELITE_SERIES_2
+			&& hardware.version <= GIP_ELITE_SERIES_2_MAX_FIRMWARE;
+
 	if (gamepad->supports_share)
 		input_set_capability(dev, EV_KEY, KEY_RECORD);
+
+	if (gamepad->supports_paddles) {
+		input_set_capability(dev, EV_KEY, BTN_TRIGGER_HAPPY5);
+		input_set_capability(dev, EV_KEY, BTN_TRIGGER_HAPPY6);
+		input_set_capability(dev, EV_KEY, BTN_TRIGGER_HAPPY7);
+		input_set_capability(dev, EV_KEY, BTN_TRIGGER_HAPPY8);
+	}
 
 	input_set_capability(dev, EV_KEY, BTN_MODE);
 	input_set_capability(dev, EV_KEY, BTN_START);
@@ -286,6 +313,17 @@ static int gip_gamepad_op_input(struct gip_client *client, void *data, u32 len)
 	input_report_key(dev, BTN_TR, buttons & GIP_GP_BTN_BUMPER_R);
 	input_report_key(dev, BTN_THUMBL, buttons & GIP_GP_BTN_STICK_L);
 	input_report_key(dev, BTN_THUMBR, buttons & GIP_GP_BTN_STICK_R);
+
+
+	if (gamepad->supports_paddles && len > sizeof(struct gip_gamepad_pkt_input)) {
+		// On the original Elite Series 2 firmware paddles are stored right after other data in the packet
+		u8 paddles = ((u8 *) data)[sizeof(struct gip_gamepad_pkt_input)];
+		input_report_key(dev, BTN_TRIGGER_HAPPY5, paddles & GIP_GP_BTN_P1);
+		input_report_key(dev, BTN_TRIGGER_HAPPY6, paddles & GIP_GP_BTN_P2);
+		input_report_key(dev, BTN_TRIGGER_HAPPY7, paddles & GIP_GP_BTN_P3);
+		input_report_key(dev, BTN_TRIGGER_HAPPY8, paddles & GIP_GP_BTN_P4);
+	}
+
 	input_report_abs(dev, ABS_X, (s16)le16_to_cpu(pkt->stick_left_x));
 	input_report_abs(dev, ABS_RX, (s16)le16_to_cpu(pkt->stick_right_x));
 	input_report_abs(dev, ABS_Y, ~(s16)le16_to_cpu(pkt->stick_left_y));
