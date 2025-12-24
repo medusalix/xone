@@ -107,7 +107,9 @@ Xbox devices have to be paired to the wireless dongle. They will not automatical
 
 Instructions for pairing your devices can be found [here](https://support.xbox.com/en-US/help/hardware-network/controller/connect-xbox-wireless-controller-to-pc) (see the section on *Xbox Wireless*).
 
-## LED control
+## Kernel interface
+
+### LED control
 
 The guide button LED can be controlled via `sysfs`:
 
@@ -124,6 +126,20 @@ ACTION=="add", SUBSYSTEM=="leds", KERNEL=="gip*", ATTR{mode}="2", ATTR{brightnes
 
 Replace the wildcard (`gip*`) if you want to control the LED of a specific device.
 The modes and the maximum brightness can vary from device to device.
+
+### Pairing mode
+
+The pairing mode of the dongle can be queried via `sysfs`:
+
+```
+cat /sys/bus/usb/drivers/xone-dongle/*/pairing
+```
+
+You can enable (`1`) or disable (`0`) the pairing using the following command:
+
+```
+echo 1 | sudo tee /sys/bus/usb/drivers/xone-dongle/*/pairing
+```
 
 ## Troubleshooting
 
