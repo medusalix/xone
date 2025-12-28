@@ -140,6 +140,13 @@ If `xone` is not being loaded automatically you might have to reboot your system
 
 You can use `evtest` and `fftest` to check the input and force feedback functionality of your devices.
 
+### Secure Boot
+
+If your sysem is using secure boot the module will not load.
+To fix this issue:
+1. Follow the DKMS instructions for signing modules here: https://github.com/dell/dkms#secure-boot
+2. reinstall xone using the steps above
+
 ### Other problems
 
 Please join the [Discord server](https://discord.gg/FDQxwWk) in case of any other problems.
