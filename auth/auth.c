@@ -449,7 +449,6 @@ static void gip_auth_exchange_rsa(struct work_struct *work)
 					     work_exchange_rsa);
 	struct gip_auth_pkt_host_secret pkt = {};
 	u8 random[GIP_AUTH_RANDOM_LEN * 2];
-	u8 pms[GIP_AUTH_SECRET_LEN];
 	int err;
 
 	memcpy(random, auth->random_host, sizeof(auth->random_host));
@@ -457,11 +456,12 @@ static void gip_auth_exchange_rsa(struct work_struct *work)
 	       sizeof(auth->random_client));
 
 	/* get random premaster secret */
-	get_random_bytes(pms, sizeof(pms));
+	get_random_bytes(auth->pms, sizeof(auth->pms));
 
 	err = gip_auth_encrypt_rsa(auth->pubkey_client,
 				   sizeof(auth->pubkey_client),
-				   pms, sizeof(pms), pkt.encrypted_pms,
+				   auth->pms, sizeof(auth->pms),
+				   pkt.encrypted_pms,
 				   sizeof(pkt.encrypted_pms));
 	if (err) {
 		dev_err(&auth->client->dev, "%s: encrypt RSA failed: %d\n",
@@ -470,7 +470,8 @@ static void gip_auth_exchange_rsa(struct work_struct *work)
 	}
 
 	err = gip_auth_compute_prf(auth->shash_prf, "Master Secret",
-				   pms, sizeof(pms), random, sizeof(random),
+				   auth->pms, sizeof(auth->pms),
+				   random, sizeof(random),
 				   auth->master_secret,
 				   sizeof(auth->master_secret));
 	if (err) {

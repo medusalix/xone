@@ -41,6 +41,7 @@ struct gip_auth {
 	u8 pubkey_client[GIP_AUTH_PUBKEY_LEN];
 	u8 pubkey_client2[GIP_AUTH2_PUBKEY_LEN];
 
+	u8 pms[GIP_AUTH_SECRET_LEN];
 	u8 master_secret[GIP_AUTH_SECRET_LEN];
 };
 
