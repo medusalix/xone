@@ -22,6 +22,10 @@ if [ -f /usr/local/bin/xow ]; then
     exit 1
 fi
 
+if ! [ -f /var/lib/dkms/mok.key ]; then
+    (mokutil --sb-state 2>/dev/null | grep enabled) && echo "Warning: you have secure boot enabled but don't have a signing key in the default location" >&2
+fi
+
 if [ -n "${SUDO_USER:-}" ]; then
     # Run as normal user to prevent "unsafe repository" error
     version=$(sudo -u "$SUDO_USER" git describe --tags 2> /dev/null || echo unknown)

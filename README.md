@@ -136,6 +136,9 @@ If `xone` is not being loaded automatically you might have to reboot your system
 - `Direct firmware load for xow_dongle.bin failed with error -2`
     - Download the firmware for the wireless dongle (see installation guide).
 
+- `Warning: you have secure boot enabled but don't have a signing key in the default location`
+    - verify that mok_signing_key and mok_certificate in /etc/dkms/framework.conf point to enrolled keys.  If there are none that you are aware of, you must enroll the ones that were generated as part of the build process (`mokutil --import /var/lib/dkms/mok.pub` as described here: https://github.com/dell/dkms#secure-boot ).  NB: if you are new to the process, it is STRONGLY recommended you add a --timeout -1 parameter to the mokutil command in case you need time to review the instructions upon rebooting.  Also, be warned that the enrollment program will fail if your chosen password is typed differently on QWERTY.
+
 ### Input issues
 
 You can use `evtest` and `fftest` to check the input and force feedback functionality of your devices.
