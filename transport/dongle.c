@@ -910,6 +910,42 @@ static void xone_dongle_destroy(struct xone_dongle *dongle)
 	mutex_destroy(&dongle->pairing_lock);
 }
 
+static ssize_t pair_show(struct device *dev, struct device_attribute *attr,
+			 char *buf)
+{
+	struct usb_interface *intf = to_usb_interface(dev);
+	struct xone_dongle *dongle = usb_get_intfdata(intf);
+
+	return sysfs_emit(buf, "%d\n", dongle->pairing);
+}
+
+static ssize_t pair_store(struct device *dev, struct device_attribute *attr,
+			  const char *buf, size_t count)
+{
+	struct usb_interface *intf = to_usb_interface(dev);
+	struct xone_dongle *dongle = usb_get_intfdata(intf);
+	bool enable;
+	int err;
+
+	err = kstrtobool(buf, &enable);
+	if (err)
+		return err;
+
+	if (enable)
+		mod_delayed_work(system_wq, &dongle->pairing_work,
+				 XONE_DONGLE_PAIRING_TIMEOUT);
+	else
+		cancel_delayed_work_sync(&dongle->pairing_work);
+
+	err = xone_dongle_toggle_pairing(dongle, enable);
+	if (err)
+		return err;
+
+	return count;
+}
+
+static DEVICE_ATTR_RW(pair);
+
 static int xone_dongle_probe(struct usb_interface *intf,
 			     const struct usb_device_id *id)
 {
@@ -949,6 +985,12 @@ static int xone_dongle_probe(struct usb_interface *intf,
 					 XONE_DONGLE_SUSPEND_DELAY);
 	usb_enable_autosuspend(dongle->mt.udev);
 
+	err = device_create_file(&intf->dev, &dev_attr_pair);
+	if (err) {
+		xone_dongle_destroy(dongle);
+		return err;
+	}
+
 	return 0;
 }
 
@@ -963,6 +1005,7 @@ static void xone_dongle_disconnect(struct usb_interface *intf)
 		dev_dbg(dongle->mt.dev, "%s: power off failed: %d\n",
 			__func__, err);
 
+	device_remove_file(&intf->dev, &dev_attr_pair);
 	xone_dongle_destroy(dongle);
 	usb_set_intfdata(intf, NULL);
 }

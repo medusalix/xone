@@ -1,0 +1,2 @@
+# Xbox Wireless Dongle - Allow input group to toggle pairing
+ACTION=="add|bind", SUBSYSTEM=="usb", DRIVER=="xone-dongle", RUN+="/bin/sh -c '/usr/bin/chgrp input /sys%p/pair && /usr/bin/chmod 664 /sys%p/pair'"
