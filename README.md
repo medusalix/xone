@@ -10,38 +10,38 @@
 
 `xone` is a Linux kernel driver for Xbox One and Xbox Series X|S accessories. It serves as a modern replacement for `xpad`, aiming to be compatible with Microsoft's *Game Input Protocol* (GIP).
 
-## Extensões deste tree (Linux Mint)
+## Extensions in this tree (Linux Mint)
 
-> **Alvo:** [Linux Mint](https://linuxmint.com/) com **Cinnamon** em **X11**.  
-> Pode funcionar em outras distros baseadas em Ubuntu/Debian, **mas não é garantido** (Wayland, outros DEs e empacotamento diferente podem quebrar o overlay ou as regras udev).
+> **Target platform:** [Linux Mint](https://linuxmint.com/) with **Cinnamon** on **X11**.  
+> It *may* work on other Ubuntu/Debian-based distributions, **but that is not guaranteed** (Wayland, other desktops, or different packaging can break the overlay or udev rules).
 
-Além do driver upstream, este repositório inclui:
+In addition to the upstream driver, this repository includes:
 
-| Área | O que foi adicionado |
-|------|----------------------|
-| **Driver / dongle** | Mitigações de reconnect do Xbox Wireless Adapter; autosuspend desligado; firmware do dongle no `install.sh` se faltar |
-| **Power-off** | Sysfs `power_off` em clientes GIP (`/sys/bus/xone-gip/devices/gip*.*/power_off`) |
-| **Permissões** | Udev + grupo `input` para o Guide / overlay (`install/user-access.sh`) |
-| **Overlay** | Companion userspace estilo Game Bar — ver [`overlay/README.md`](overlay/README.md) |
-| **Install/uninstall** | Overlay, udev, firmware e dependências apt rastreadas (`install/apt-deps.sh`) |
+| Area | What was added |
+|------|----------------|
+| **Driver / dongle** | Wireless adapter reconnect mitigations; autosuspend disabled; dongle firmware installed by `install.sh` when missing |
+| **Power-off** | Sysfs `power_off` on GIP clients (`/sys/bus/xone-gip/devices/gip*.*/power_off`) |
+| **Permissions** | Udev + `input` group for Guide / overlay (`install/user-access.sh`) |
+| **Overlay** | Userspace Game Bar–style companion — see [`overlay/README.md`](overlay/README.md) |
+| **Install / uninstall** | Overlay, udev, firmware, and tracked apt dependencies (`install/apt-deps.sh`) |
 
-### Overlay — como usar (resumo)
+### Overlay — quick start
 
-1. Instale com `sudo ./install.sh` e faça **logout/login** (grupo `input`).
-2. O serviço `xone-overlay` sobe no login (`systemd --user`).
-3. Pressione o botão **Guide** (X central) no controle para abrir/fechar o painel.
-4. No painel: baterias, desempenho, volume, captura (área/janela/monitor/tela), OBS (gravar/stream), desligar controle, configurações (posição, opacidade, pasta de capturas, WebSocket do OBS).
+1. Install with `sudo ./install.sh`, then **log out and back in** (`input` group).
+2. The `xone-overlay` service starts at login (`systemd --user`).
+3. Press the **Guide** button (center Xbox button) to show or hide the panel.
+4. On the panel: batteries, performance, volume, screenshot (area / window / monitor / full), OBS (record / stream), power off controller, and settings (position, opacity, screenshot folder, OBS WebSocket).
 
-Documentação completa do overlay: **[`overlay/README.md`](overlay/README.md)**.
+Full overlay documentation: **[`overlay/README.md`](overlay/README.md)**.
 
-### Atualizar / remover
+### Update / remove
 
 ```bash
-sudo ./uninstall.sh   # remove driver, overlay, udev e pacotes apt que *este* install adicionou
-sudo ./install.sh     # reinstala tudo
+sudo ./uninstall.sh   # removes driver, overlay, udev, and apt packages *this* install added
+sudo ./install.sh     # reinstall everything
 ```
 
-O firmware `/lib/firmware/xow_dongle.bin` **não** é apagado no uninstall (o dongle precisa dele). O **OBS Studio** também não é instalado nem removido pelo xone — só controlado pelo overlay se já estiver presente.
+`/lib/firmware/xow_dongle.bin` is **not** removed on uninstall (the dongle needs it). **OBS Studio** is neither installed nor removed by xone — the overlay only controls it when already present.
 
 ## Compatibility
 
@@ -169,7 +169,7 @@ echo 1 | tee /sys/bus/xone-gip/devices/gip0.0/power_off
 
 This sends the same power-off command used when the wireless dongle is unplugged.
 Press the Xbox button on the controller to turn it back on (pairing is kept).
-The xone Overlay also has a **Desligar controle** button that writes this attribute
+The xone Overlay also has a **Power off controller** button that writes this attribute
 (requires group `input` + the packaged udev rule).
 
 ## Troubleshooting

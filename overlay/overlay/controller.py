@@ -44,7 +44,7 @@ def power_off_controllers() -> Tuple[bool, str]:
         # Fallback: any GIP client with power_off (older layouts / odd names)
         paths = sorted(glob.glob(_POWER_OFF_GLOB))
     if not paths:
-        return False, "Nenhum controle GIP encontrado (driver xone atualizado?)"
+        return False, "No GIP controller found (updated xone driver?)"
 
     ok_count = 0
     last_err = ""
@@ -55,7 +55,7 @@ def power_off_controllers() -> Tuple[bool, str]:
             ok_count += 1
             log.info("powered off via %s", path)
         except PermissionError:
-            last_err = "Sem permissão (grupo input + udev; relogue após install)"
+            last_err = "Permission denied (input group + udev; re-login after install)"
             log.warning("power_off denied: %s", path)
         except OSError as exc:
             last_err = str(exc)
@@ -63,6 +63,6 @@ def power_off_controllers() -> Tuple[bool, str]:
 
     if ok_count:
         if ok_count == 1:
-            return True, "Controle desligado"
-        return True, f"{ok_count} controles desligados"
-    return False, last_err or "Falha ao desligar o controle"
+            return True, "Controller powered off"
+        return True, f"{ok_count} controllers powered off"
+    return False, last_err or "Failed to power off controller"

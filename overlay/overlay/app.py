@@ -148,7 +148,7 @@ class OverlayWindow(Gtk.Window):
 
         close_btn = Gtk.Button()
         close_btn.set_image(_icon_image("window-close-symbolic"))
-        close_btn.set_tooltip_text("Fechar (Esc)")
+        close_btn.set_tooltip_text("Close (Esc)")
         close_btn.get_style_context().add_class("icon-btn")
         close_btn.set_relief(Gtk.ReliefStyle.NONE)
         close_btn.connect("clicked", lambda *_: self.hide_overlay())
@@ -156,7 +156,7 @@ class OverlayWindow(Gtk.Window):
 
         settings_btn = Gtk.Button()
         settings_btn.set_image(_icon_image("preferences-system-symbolic"))
-        settings_btn.set_tooltip_text("Configurações")
+        settings_btn.set_tooltip_text("Settings")
         settings_btn.get_style_context().add_class("icon-btn")
         settings_btn.set_relief(Gtk.ReliefStyle.NONE)
         settings_btn.connect("clicked", self._open_settings_dialog)
@@ -167,26 +167,26 @@ class OverlayWindow(Gtk.Window):
         self._body = body
         root.pack_start(body, False, False, 0)
 
-        # Baterias
-        batt = self._section("Bateria")
+        # Batteries
+        batt = self._section("Battery")
         self.laptop_bar, self.laptop_val = self._metric(batt, "PC")
-        self.ctrl_bar, self.ctrl_val = self._metric(batt, "Controle")
+        self.ctrl_bar, self.ctrl_val = self._metric(batt, "Controller")
         body.pack_start(batt, True, True, 0)
 
-        # Desempenho
-        perf = self._section("Desempenho")
+        # Performance
+        perf = self._section("Performance")
         self.cpu_bar, self.cpu_val = self._metric(perf, "CPU")
         self.ram_bar, self.ram_val = self._metric(perf, "RAM")
         self.gpu_bar, self.gpu_val = self._metric(perf, "GPU")
         body.pack_start(perf, True, True, 0)
 
-        # Áudio
-        audio_sec = self._section("Áudio")
+        # Audio
+        audio_sec = self._section("Audio")
         audio_sec.get_style_context().add_class("audio-row")
         vol_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.mute_btn = Gtk.ToggleButton()
         self.mute_btn.set_image(_icon_image("audio-volume-high-symbolic"))
-        self.mute_btn.set_tooltip_text("Mudo")
+        self.mute_btn.set_tooltip_text("Mute")
         self.mute_btn.get_style_context().add_class("icon-btn")
         self.mute_btn.set_relief(Gtk.ReliefStyle.NONE)
         self.mute_btn.connect("toggled", self._on_mute_toggled)
@@ -202,20 +202,20 @@ class OverlayWindow(Gtk.Window):
         self.volume_scale.connect("value-changed", self._on_volume_changed)
         vol_row.pack_start(self.volume_scale, True, True, 0)
         audio_sec.pack_start(vol_row, False, False, 0)
-        hint = Gtk.Label(label="Sink padrão do sistema")
+        hint = Gtk.Label(label="System default sink")
         hint.get_style_context().add_class("metric-hint")
         hint.set_xalign(0)
         audio_sec.pack_start(hint, False, False, 0)
         body.pack_start(audio_sec, True, True, 0)
 
-        # Ação
-        act = self._section("Ação")
+        # Actions
+        act = self._section("Actions")
         act.get_style_context().add_class("action-col")
         shot = Gtk.Button()
         shot_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         shot_box.set_halign(Gtk.Align.CENTER)
         shot_box.pack_start(_icon_image("camera-photo-symbolic"), False, False, 0)
-        shot_box.pack_start(Gtk.Label(label="Captura de tela"), False, False, 0)
+        shot_box.pack_start(Gtk.Label(label="Screenshot"), False, False, 0)
         shot.add(shot_box)
         shot.get_style_context().add_class("btn-primary")
         shot.set_tooltip_text(self._screenshot_tooltip())
@@ -229,12 +229,12 @@ class OverlayWindow(Gtk.Window):
         power_box.pack_start(
             _icon_image("system-shutdown-symbolic"), False, False, 0
         )
-        power_box.pack_start(Gtk.Label(label="Desligar controle"), False, False, 0)
+        power_box.pack_start(Gtk.Label(label="Power off controller"), False, False, 0)
         power.add(power_box)
         power.get_style_context().add_class("btn-secondary")
         power.set_tooltip_text(
-            "Desliga o controle sem segurar o botão Xbox. "
-            "Ligue de novo pelo botão Xbox."
+            "Power off the controller without holding the Xbox button. "
+            "Press the Xbox button to turn it on again."
         )
         power.connect("clicked", self._on_power_off_controller)
         act.pack_start(power, False, False, 0)
@@ -257,11 +257,11 @@ class OverlayWindow(Gtk.Window):
         rec_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         rec_box.set_halign(Gtk.Align.CENTER)
         rec_box.pack_start(_icon_image("media-record-symbolic"), False, False, 0)
-        self._obs_record_label = Gtk.Label(label="Gravar")
+        self._obs_record_label = Gtk.Label(label="Record")
         rec_box.pack_start(self._obs_record_label, False, False, 0)
         self.obs_record_btn.add(rec_box)
         self.obs_record_btn.get_style_context().add_class("btn-secondary")
-        self.obs_record_btn.set_tooltip_text("Iniciar/parar gravação no OBS Studio")
+        self.obs_record_btn.set_tooltip_text("Start/stop recording in OBS Studio")
         self.obs_record_btn.connect("toggled", self._on_obs_record_toggled)
         obs_row.pack_start(self.obs_record_btn, True, True, 0)
 
@@ -273,7 +273,7 @@ class OverlayWindow(Gtk.Window):
         st_box.pack_start(self._obs_stream_label, False, False, 0)
         self.obs_stream_btn.add(st_box)
         self.obs_stream_btn.get_style_context().add_class("btn-secondary")
-        self.obs_stream_btn.set_tooltip_text("Iniciar/parar transmissão no OBS Studio")
+        self.obs_stream_btn.set_tooltip_text("Start/stop streaming in OBS Studio")
         self.obs_stream_btn.connect("toggled", self._on_obs_stream_toggled)
         obs_row.pack_start(self.obs_stream_btn, True, True, 0)
 
@@ -284,7 +284,7 @@ class OverlayWindow(Gtk.Window):
         self.obs_hint.set_max_width_chars(28)
         self.obs_hint.get_style_context().add_class("metric-hint")
         obs_sec.pack_start(self.obs_hint, False, False, 0)
-        help_btn = Gtk.Button(label="Como configurar o OBS")
+        help_btn = Gtk.Button(label="How to set up OBS")
         help_btn.set_relief(Gtk.ReliefStyle.NONE)
         help_btn.get_style_context().add_class("icon-btn")
         help_btn.connect("clicked", self._on_obs_help)
@@ -345,14 +345,14 @@ class OverlayWindow(Gtk.Window):
         self._settings = config.load()
 
         dialog = Gtk.Dialog(
-            title="Configurações do xone Overlay",
+            title="xone Overlay Settings",
             transient_for=self,
             modal=True,
             destroy_with_parent=True,
         )
         dialog.set_resizable(False)
         dialog.set_default_size(420, -1)
-        dialog.add_button("Fechar", Gtk.ResponseType.CLOSE)
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
         dialog.set_default_response(Gtk.ResponseType.CLOSE)
         dialog.get_style_context().add_class("settings-dialog")
 
@@ -365,15 +365,15 @@ class OverlayWindow(Gtk.Window):
         body.get_style_context().add_class("settings-dialog-body")
         content.pack_start(body, True, True, 0)
 
-        # —— Posição ——
+        # —— Position ——
         pos_block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        pos_title = Gtk.Label(label="Posição na tela")
+        pos_title = Gtk.Label(label="Screen position")
         pos_title.get_style_context().add_class("settings-heading")
         pos_title.set_xalign(0)
         pos_block.pack_start(pos_title, False, False, 0)
 
         pos_help = Gtk.Label(
-            label="Topo/Baixo: painel horizontal.  Esquerda/Direita: painel vertical."
+            label="Top/Bottom: horizontal panel.  Left/Right: vertical panel."
         )
         pos_help.get_style_context().add_class("metric-hint")
         pos_help.set_xalign(0)
@@ -395,10 +395,10 @@ class OverlayWindow(Gtk.Window):
             "bottom": (1, 2),
         }
         short_labels = {
-            "top": "⬆ Topo",
-            "right": "➡ Direita",
-            "bottom": "⬇ Baixo",
-            "left": "⬅ Esquerda",
+            "top": "⬆ Top",
+            "right": "➡ Right",
+            "bottom": "⬇ Bottom",
+            "left": "⬅ Left",
         }
 
         current = self._settings.get("position", "top")
@@ -426,15 +426,15 @@ class OverlayWindow(Gtk.Window):
         sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         body.pack_start(sep, False, False, 0)
 
-        # —— Opacidade ——
+        # —— Opacity ——
         opac_block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        opac_title = Gtk.Label(label="Opacidade do fundo")
+        opac_title = Gtk.Label(label="Background opacity")
         opac_title.get_style_context().add_class("settings-heading")
         opac_title.set_xalign(0)
         opac_block.pack_start(opac_title, False, False, 0)
 
         opac_help = Gtk.Label(
-            label="Valores menores deixam o jogo mais visível atrás do painel."
+            label="Lower values keep more of the game visible behind the panel."
         )
         opac_help.get_style_context().add_class("metric-hint")
         opac_help.set_xalign(0)
@@ -442,9 +442,9 @@ class OverlayWindow(Gtk.Window):
         opac_block.pack_start(opac_help, False, False, 0)
 
         opacity_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        low = Gtk.Label(label="Transparente")
+        low = Gtk.Label(label="Transparent")
         low.get_style_context().add_class("metric-hint")
-        high = Gtk.Label(label="Sólido")
+        high = Gtk.Label(label="Solid")
         high.get_style_context().add_class("metric-hint")
 
         self._opacity_scale = Gtk.Scale.new_with_range(
@@ -470,15 +470,15 @@ class OverlayWindow(Gtk.Window):
         sep2 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         body.pack_start(sep2, False, False, 0)
 
-        # —— Capturas ——
+        # —— Screenshots ——
         shot_block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        shot_title = Gtk.Label(label="Pasta das capturas")
+        shot_title = Gtk.Label(label="Screenshot folder")
         shot_title.get_style_context().add_class("settings-heading")
         shot_title.set_xalign(0)
         shot_block.pack_start(shot_title, False, False, 0)
 
         shot_help = Gtk.Label(
-            label="Onde salvar as imagens do botão Captura de tela."
+            label="Where to save images from the Screenshot button."
         )
         shot_help.get_style_context().add_class("metric-hint")
         shot_help.set_xalign(0)
@@ -497,13 +497,13 @@ class OverlayWindow(Gtk.Window):
         )
         shot_row.pack_start(self._screenshot_dir_label, True, True, 0)
 
-        browse = Gtk.Button(label="Escolher…")
-        browse.set_tooltip_text("Selecionar pasta")
+        browse = Gtk.Button(label="Browse…")
+        browse.set_tooltip_text("Choose folder")
         browse.connect("clicked", self._on_pick_screenshot_dir, dialog)
         shot_row.pack_start(browse, False, False, 0)
 
-        reset = Gtk.Button(label="Padrão")
-        reset.set_tooltip_text("Voltar para ~/Pictures/Screenshots")
+        reset = Gtk.Button(label="Default")
+        reset.set_tooltip_text("Reset to ~/Pictures/Screenshots")
         reset.connect("clicked", self._on_reset_screenshot_dir)
         shot_row.pack_start(reset, False, False, 0)
 
@@ -515,14 +515,14 @@ class OverlayWindow(Gtk.Window):
 
         # —— OBS ——
         obs_block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        obs_title = Gtk.Label(label="OBS Studio (gravação / stream)")
+        obs_title = Gtk.Label(label="OBS Studio (record / stream)")
         obs_title.get_style_context().add_class("settings-heading")
         obs_title.set_xalign(0)
         obs_block.pack_start(obs_title, False, False, 0)
 
         obs_help = Gtk.Label(
-            label="Controle remoto via WebSocket. Ative em: "
-            "Ferramentas → Configurações do servidor WebSocket."
+            label="Remote control via WebSocket. Enable under: "
+            "Tools → WebSocket Server Settings."
         )
         obs_help.get_style_context().add_class("metric-hint")
         obs_help.set_xalign(0)
@@ -538,7 +538,7 @@ class OverlayWindow(Gtk.Window):
         obs_block.pack_start(host_row, False, False, 0)
 
         port_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        port_row.pack_start(Gtk.Label(label="Porta", xalign=0), False, False, 0)
+        port_row.pack_start(Gtk.Label(label="Port", xalign=0), False, False, 0)
         self._obs_port_entry = Gtk.Entry()
         self._obs_port_entry.set_width_chars(6)
         self._obs_port_entry.set_text(str(self._settings.get("obs_port", 4455)))
@@ -546,23 +546,23 @@ class OverlayWindow(Gtk.Window):
         obs_block.pack_start(port_row, False, False, 0)
 
         pass_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        pass_row.pack_start(Gtk.Label(label="Senha", xalign=0), False, False, 0)
+        pass_row.pack_start(Gtk.Label(label="Password", xalign=0), False, False, 0)
         self._obs_pass_entry = Gtk.Entry()
         self._obs_pass_entry.set_visibility(False)
         self._obs_pass_entry.set_input_purpose(Gtk.InputPurpose.PASSWORD)
         self._obs_pass_entry.set_text(str(self._settings.get("obs_password", "")))
         self._obs_pass_entry.set_hexpand(True)
-        self._obs_pass_entry.set_placeholder_text("(se configurada no OBS)")
+        self._obs_pass_entry.set_placeholder_text("(if set in OBS)")
         pass_row.pack_start(self._obs_pass_entry, True, True, 0)
         obs_block.pack_start(pass_row, False, False, 0)
 
-        save_obs = Gtk.Button(label="Salvar conexão OBS")
+        save_obs = Gtk.Button(label="Save OBS connection")
         save_obs.get_style_context().add_class("btn-secondary")
         save_obs.connect("clicked", self._on_save_obs_settings)
         obs_block.pack_start(save_obs, False, False, 0)
         body.pack_start(obs_block, False, False, 0)
 
-        foot = Gtk.Label(label="Preferências salvas em ~/.config/xone-overlay/")
+        foot = Gtk.Label(label="Preferences saved under ~/.config/xone-overlay/")
         foot.get_style_context().add_class("metric-hint")
         foot.set_xalign(0)
         foot.set_margin_top(4)
@@ -598,14 +598,14 @@ class OverlayWindow(Gtk.Window):
 
     def _on_pick_screenshot_dir(self, _button, parent: Gtk.Window) -> None:
         chooser = Gtk.FileChooserDialog(
-            title="Pasta das capturas",
+            title="Screenshot folder",
             parent=parent,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
         )
         chooser.add_buttons(
-            "Cancelar",
+            "Cancel",
             Gtk.ResponseType.CANCEL,
-            "Selecionar",
+            "Select",
             Gtk.ResponseType.ACCEPT,
         )
         current = config.resolve_screenshot_dir(self._settings.get("screenshot_dir"))
@@ -638,7 +638,7 @@ class OverlayWindow(Gtk.Window):
         password = self._obs_pass_entry.get_text()
         self._settings = config.set_obs_connection(host, port, password)
         log.info("OBS connection → %s:%s", host, port)
-        self.set_status("Conexão OBS salva")
+        self.set_status("OBS connection saved")
         self._refresh_obs_status()
 
     def _show_obs_help_dialog(self, text: str) -> None:
@@ -665,10 +665,10 @@ class OverlayWindow(Gtk.Window):
             self.obs_record_btn.set_active(status.recording and status.connected)
             self.obs_stream_btn.set_active(status.streaming and status.connected)
             self._obs_record_label.set_text(
-                "Gravando" if status.recording and status.connected else "Gravar"
+                "Recording" if status.recording and status.connected else "Record"
             )
             self._obs_stream_label.set_text(
-                "Ao vivo" if status.streaming and status.connected else "Stream"
+                "Live" if status.streaming and status.connected else "Stream"
             )
             hint = obs.short_help(status)
             self.obs_hint.set_text(hint)
@@ -997,9 +997,9 @@ class OverlayWindow(Gtk.Window):
 
     def set_status(self, text: str, timeout_ms: int = 4000) -> None:
         # Show basename for long paths
-        if text.startswith("Salvo: "):
+        if text.startswith("Saved: "):
             path = text[7:]
-            text = f"Salvo: {Path(path).name}"
+            text = f"Saved: {Path(path).name}"
         self.status_label.set_text(text)
         if self._status_timeout is not None:
             GLib.source_remove(self._status_timeout)
@@ -1092,8 +1092,8 @@ class OverlayWindow(Gtk.Window):
 
     def _screenshot_tooltip(self) -> str:
         return (
-            f"Escolha área, janela, monitor ou tela inteira. "
-            f"Salva em {self._screenshot_dir_display()}"
+            f"Choose area, window, monitor, or full screen. "
+            f"Saves to {self._screenshot_dir_display()}"
         )
 
     def _on_screenshot_menu(self, button: Gtk.Button) -> None:
@@ -1108,8 +1108,8 @@ class OverlayWindow(Gtk.Window):
             )
             menu.append(item)
 
-        add_item("Área da tela…", "area")
-        add_item("Janela / aplicativo…", "window")
+        add_item("Screen area…", "area")
+        add_item("Window / application…", "window")
 
         monitors = screenshot.list_monitors()
         if len(monitors) > 1:
@@ -1118,11 +1118,11 @@ class OverlayWindow(Gtk.Window):
             for mon in monitors:
                 add_item(f"Monitor: {mon['label']}", "monitor", mon["index"])
         elif len(monitors) == 1:
-            add_item(f"Este monitor ({monitors[0]['width']}×{monitors[0]['height']})", "monitor", monitors[0]["index"])
+            add_item(f"This monitor ({monitors[0]['width']}×{monitors[0]['height']})", "monitor", monitors[0]["index"])
 
         sep2 = Gtk.SeparatorMenuItem()
         menu.append(sep2)
-        add_item("Tela inteira (todos os monitores)", "fullscreen")
+        add_item("Full screen (all monitors)", "fullscreen")
 
         menu.show_all()
         menu.popup_at_widget(
@@ -1147,7 +1147,7 @@ class OverlayWindow(Gtk.Window):
             if was_visible:
                 self.show_overlay()
             if ok:
-                self.set_status(f"Salvo: {msg}")
+                self.set_status(f"Saved: {msg}")
             else:
                 self.set_status(msg)
             return False
@@ -1160,14 +1160,14 @@ class OverlayWindow(Gtk.Window):
             modal=True,
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.NONE,
-            text="Desligar o controle?",
+            text="Power off the controller?",
         )
         dialog.format_secondary_text(
-            "O controle apaga como se você segurasse o botão Xbox. "
-            "Para ligar de novo, basta apertar o botão Xbox."
+            "The controller turns off as if you held the Xbox button. "
+            "Press the Xbox button to turn it on again."
         )
-        dialog.add_button("Cancelar", Gtk.ResponseType.CANCEL)
-        dialog.add_button("Desligar", Gtk.ResponseType.ACCEPT)
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Power off", Gtk.ResponseType.ACCEPT)
         dialog.set_default_response(Gtk.ResponseType.ACCEPT)
         response = dialog.run()
         dialog.destroy()

@@ -1,87 +1,87 @@
 # xone Overlay (Linux Mint)
 
-Companion em userspace para o driver [xone](../README.md): painel estilo Game Bar no **Linux Mint / Cinnamon (X11)**.
+Userspace companion for the [xone](../README.md) driver: a Game Bar–style panel for **Linux Mint / Cinnamon (X11)**.
 
-> **Suporte:** desenvolvido e testado no **Linux Mint** (Cinnamon + X11).  
-> Em outras distribuições **base Ubuntu/Debian** pode funcionar, **mas não é garantido** — Wayland, outro desktop ou pacotes diferentes podem exigir ajustes.
+> **Support:** Developed and tested on **Linux Mint** (Cinnamon + X11).  
+> It *may* work on other **Ubuntu/Debian-based** distributions, **but that is not guaranteed** — Wayland, other desktops, or different packages may require changes.
 
-Pressione o botão **Guide** (X central) do controle Xbox para mostrar ou esconder. Use o **✕** no painel ou `Esc` para fechar.
+Press the **Guide** button (center Xbox button) to show or hide the panel. Use **✕** or `Esc` to close.
 
 ---
 
-## O que este overlay adiciona
+## Features
 
-| Recurso | Detalhe |
+| Feature | Details |
 |---------|---------|
-| Relógio | Hora atual no cabeçalho |
-| Baterias | Notebook + controle (UPower / sysfs; no controle: Low/Normal/High/Full) |
-| Desempenho | CPU, RAM e GPU (NVIDIA ou AMD, se disponível) |
-| Áudio | Volume e mute do sink padrão (`pactl`) |
-| Captura de tela | Menu no momento da captura: **área**, **janela/app**, **monitor** ou **tela inteira** |
-| Pasta das capturas | Configurável (padrão `~/Pictures/Screenshots`) |
-| OBS Studio | **Gravar** / **Stream** via WebSocket (não grava dentro do overlay) |
-| Desligar controle | Envia `power_off` pelo sysfs do xone; religa pelo botão Xbox |
-| Aparência | Segue o tema GTK (ex.: Mint-Y); posição nas 4 bordas; opacidade do fundo |
-| Autostart | `systemd --user` + fallback em `~/.config/autostart/` |
+| Clock | Current time in the header |
+| Batteries | Laptop + controller (UPower / sysfs; controller levels: Low/Normal/High/Full) |
+| Performance | CPU, RAM, and GPU (NVIDIA or AMD when available) |
+| Audio | Default sink volume and mute (`pactl`) |
+| Screenshot | Capture-time menu: **area**, **window/app**, **monitor**, or **full screen** |
+| Screenshot folder | Configurable (default `~/Pictures/Screenshots`) |
+| OBS Studio | **Record** / **Stream** via WebSocket (does not encode video inside the overlay) |
+| Power off controller | Writes xone sysfs `power_off`; wake with the Xbox button |
+| Appearance | Follows the GTK theme (e.g. Mint-Y); four edge positions; background opacity |
+| Autostart | `systemd --user` + fallback under `~/.config/autostart/` |
 
 ---
 
-## Instalação (recomendada)
+## Installation (recommended)
 
-O script principal do projeto instala o overlay junto com o driver:
+The main project script installs the overlay with the driver:
 
 ```bash
-cd /caminho/para/xone
+cd /path/to/xone
 sudo ./install.sh
 ```
 
-Isso (via [`install/overlay.sh`](../install/overlay.sh), [`install/user-access.sh`](../install/user-access.sh), [`install/apt-deps.sh`](../install/apt-deps.sh)):
+This (via [`install/overlay.sh`](../install/overlay.sh), [`install/user-access.sh`](../install/user-access.sh), [`install/apt-deps.sh`](../install/apt-deps.sh)):
 
-1. Instala as dependências apt do overlay (**só as que ainda não estavam**; lista em `/var/lib/xone/apt-packages.list`)
-2. Copia o app para `/usr/local/share/xone-overlay`
-3. Cria o comando `xone-overlay` e o serviço `systemd --user`
-4. Adiciona seu usuário ao grupo `input` (registrado para o uninstall reverter)
-5. Instala udev (dongle sem autosuspend + acesso ao controle)
-6. Configura autostart em `~/.config/autostart/`
+1. Installs overlay apt dependencies (**only packages that were not already present**; list in `/var/lib/xone/apt-packages.list`)
+2. Copies the app to `/usr/local/share/xone-overlay`
+3. Creates the `xone-overlay` command and `systemd --user` unit
+4. Adds your user to group `input` (tracked so uninstall can reverse it)
+5. Installs udev rules (dongle autosuspend off + controller access)
+6. Sets up autostart under `~/.config/autostart/`
 
-Depois faça **logout/login** (grupo `input`) — o overlay sobe sozinho.
+Then **log out and back in** (`input` group) — the overlay starts on its own.
 
 ```bash
-sudo ./uninstall.sh   # remove overlay, serviço, udev e pacotes apt rastreados pelo xone
+sudo ./uninstall.sh   # removes overlay, service, udev, and apt packages tracked by xone
 ```
 
-### Dependências apt (instaladas pelo install)
+### Apt dependencies (installed by install)
 
 - `python3-gi`, `python3-gi-cairo`, `gir1.2-gtk-3.0`
 - `gir1.2-upowerglib-1.0`, `python3-evdev`, `python3-websocket`
 - `gnome-screenshot`
-- `pulseaudio-utils` ou `pipewire-pulse` (se faltar `pactl`)
-- Opcional no sistema: **OBS Studio** (Flatpak ou apt) — o xone **não** instala o OBS
+- `pulseaudio-utils` or `pipewire-pulse` (if `pactl` is missing)
+- Optional on the system: **OBS Studio** (Flatpak or apt) — xone does **not** install OBS
 
-### Desenvolvimento local (sem `install.sh`)
+### Local development (without `install.sh`)
 
 ```bash
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 \
   gir1.2-upowerglib-1.0 python3-evdev python3-websocket \
   pulseaudio-utils gnome-screenshot
-sudo usermod -aG input "$USER"   # logout/login
+sudo usermod -aG input "$USER"   # log out/in
 cd overlay
 python3 xone-overlay.py
-# opcional:
+# optional:
 ./install-autostart.sh
 ```
 
 ---
 
-## Uso
+## Usage
 
-### Abrir o painel
+### Open the panel
 
-1. Com o serviço ativo e o controle conectado (driver xone), pressione **Guide**.
-2. Para fechar: **✕**, `Esc` ou Guide de novo.
+1. With the service running and a controller connected (xone driver), press **Guide**.
+2. To close: **✕**, `Esc`, or Guide again.
 
 ```bash
-# subir agora (sem relogin)
+# start now (without re-login)
 systemctl --user enable --now xone-overlay
 
 # status / logs
@@ -89,61 +89,61 @@ systemctl --user status xone-overlay
 tail -f ~/.local/state/xone-overlay/overlay.log
 ```
 
-### Captura de tela
+### Screenshots
 
-No botão **Captura de tela**, escolha:
+On **Screenshot**, choose:
 
-- **Área da tela…** — seleção com o mouse  
-- **Janela / aplicativo…** — clique na janela  
-- **Monitor: …** — um monitor específico (útil com 2+ monitores)  
-- **Tela inteira** — todos os monitores  
+- **Screen area…** — drag to select a region  
+- **Window / application…** — click a window  
+- **Monitor: …** — one specific display (useful with 2+ monitors)  
+- **Full screen** — all monitors  
 
-Pasta padrão: `~/Pictures/Screenshots` (alterável em **Configurações**).
+Default folder: `~/Pictures/Screenshots` (change under **Settings**).
 
-### Desligar o controle
+### Power off the controller
 
-**Desligar controle** → confirmação → o controle apaga (mesmo efeito de segurar o botão Xbox).  
-Para ligar de novo: apertar o botão Xbox (pareamento mantido).
+**Power off controller** → confirm → the pad shuts down (same as holding the Xbox button).  
+To turn it on again: press the Xbox button (pairing is kept).
 
-### OBS (gravação / stream)
+### OBS (record / stream)
 
-O overlay **não** grava vídeo sozinho; controla o OBS via WebSocket (`localhost:4455`).
+The overlay does **not** record video itself; it controls OBS over WebSocket (`localhost:4455`).
 
-1. Instale o OBS: `flatpak install flathub com.obsproject.Studio` ou `sudo apt install obs-studio`
-2. Abra o OBS → **Ferramentas → Configurações do servidor WebSocket → Ativar**
-3. Se houver senha, salve-a em **Configurações** do overlay
-4. No painel: **Gravar** / **Stream**
+1. Install OBS: `flatpak install flathub com.obsproject.Studio` or `sudo apt install obs-studio`
+2. Open OBS → **Tools → WebSocket Server Settings → Enable**
+3. If a password is set, save it under overlay **Settings**
+4. On the panel: **Record** / **Stream**
 
-Se o OBS não estiver instalado ou o WebSocket não responder, o overlay mostra uma mensagem com instruções de instalação/ativação.
+If OBS is missing or the WebSocket does not respond, the overlay shows install/enable instructions.
 
-### Configurações (ícone de engrenagem)
+### Settings (gear icon)
 
-- **Posição** — Topo / Direita / Baixo / Esquerda (horizontal ou vertical)
-- **Opacidade** do fundo do painel
-- **Pasta das capturas**
-- **OBS** — host, porta e senha do WebSocket
+- **Position** — Top / Right / Bottom / Left (horizontal or vertical layout)
+- Panel background **opacity**
+- **Screenshot folder**
+- **OBS** — WebSocket host, port, and password
 
-Preferências: `~/.config/xone-overlay/config.json`
-
----
-
-## Solução de problemas
-
-| Sintoma | Verificação |
-|---------|-------------|
-| Guide não abre o overlay | `groups` deve listar `input`; logout/login; `python3 -c "import evdev"`; controle com xone |
-| Controle sem bateria | `upower -e` / `ls /sys/class/power_supply/` |
-| Sem volume | `pactl info` |
-| Captura falha | `gnome-screenshot --version` |
-| OBS não conecta | OBS aberto + WebSocket ativo; senha nas configs; `python3-websocket` instalado |
-| Dongle sem firmware | `ls /lib/firmware/xow_dongle.bin` ou `sudo xone-get-firmware.sh` |
-| Painel desalinhado ao trocar posição | Troque de novo após o layout estabilizar; botões ficam bloqueados durante o repositionamento |
+Preferences: `~/.config/xone-overlay/config.json`
 
 ---
 
-## Escopo e limitações
+## Troubleshooting
 
-- Foco em **Linux Mint / Cinnamon / X11**
-- Sem contador de FPS, sem mixer por aplicativo
-- Gravação/stream dependem do **OBS** externo
-- Outras distros Ubuntu-like: use por sua conta; reporte o ambiente se algo falhar
+| Symptom | Check |
+|---------|--------|
+| Guide does not open the overlay | `groups` should list `input`; log out/in; `python3 -c "import evdev"`; controller on xone |
+| No controller battery | `upower -e` / `ls /sys/class/power_supply/` |
+| No volume | `pactl info` |
+| Screenshot fails | `gnome-screenshot --version` |
+| OBS not connected | OBS open + WebSocket enabled; password in settings; `python3-websocket` installed |
+| Dongle missing firmware | `ls /lib/firmware/xow_dongle.bin` or `sudo xone-get-firmware.sh` |
+| Panel misaligned after changing position | Change position again after layout settles; buttons stay disabled during repositioning |
+
+---
+
+## Scope and limitations
+
+- Focused on **Linux Mint / Cinnamon / X11**
+- No FPS counter, no per-application mixer
+- Recording/streaming depend on external **OBS**
+- Other Ubuntu-like distros: use at your own risk; report your environment if something fails

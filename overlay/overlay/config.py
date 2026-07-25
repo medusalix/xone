@@ -18,10 +18,10 @@ POSITIONS = (
 )
 
 POSITION_LABELS = {
-    "top": "Topo",
-    "right": "Direita",
-    "bottom": "Baixo",
-    "left": "Esquerda",
+    "top": "Top",
+    "right": "Right",
+    "bottom": "Bottom",
+    "left": "Left",
 }
 
 # Migrate legacy corner/center keys from earlier builds

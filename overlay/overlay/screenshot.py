@@ -58,7 +58,7 @@ def list_monitors() -> List[Dict[str, Any]]:
             primary = i == 0
         label = f"{name} ({geo.width}×{geo.height})"
         if primary:
-            label += " · principal"
+            label += " · primary"
         monitors.append(
             {
                 "index": i,
@@ -81,7 +81,7 @@ def _prepare_path(directory: Optional[Union[str, Path]]) -> Tuple[Optional[Path]
     try:
         target.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        return None, f"pasta inválida: {exc}"
+        return None, f"invalid folder: {exc}"
     stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     return target / f"xone-overlay_{stamp}.png", ""
 
@@ -96,20 +96,20 @@ def _run_gnome_screenshot(args: List[str], timeout: int) -> Tuple[bool, str]:
         )
         return True, ""
     except FileNotFoundError:
-        return False, "gnome-screenshot não instalado"
+        return False, "gnome-screenshot not installed"
     except subprocess.TimeoutExpired:
-        return False, "tempo esgotado na captura"
+        return False, "screenshot timed out"
     except subprocess.CalledProcessError:
-        return False, "Captura cancelada"
+        return False, "Screenshot cancelled"
     except subprocess.SubprocessError as exc:
-        return False, f"falha na captura: {exc}"
+        return False, f"screenshot failed: {exc}"
 
 
 def _crop_pixbuf_to_monitor(src: Path, dest: Path, mon: Dict[str, Any]) -> Tuple[bool, str]:
     try:
         full = GdkPixbuf.Pixbuf.new_from_file(str(src))
     except Exception as exc:
-        return False, f"não foi possível ler a captura: {exc}"
+        return False, f"could not read screenshot: {exc}"
 
     img_w = full.get_width()
     img_h = full.get_height()
@@ -121,10 +121,10 @@ def _crop_pixbuf_to_monitor(src: Path, dest: Path, mon: Dict[str, Any]) -> Tuple
     try:
         cropped = full.new_subpixbuf(x, y, w, h)
         if cropped is None:
-            return False, "recorte do monitor falhou"
+            return False, "monitor crop failed"
         cropped.savev(str(dest), "png", [], [])
     except Exception as exc:
-        return False, f"recorte falhou: {exc}"
+        return False, f"crop failed: {exc}"
     return True, ""
 
 
@@ -157,7 +157,7 @@ def take_screenshot(
         )
         if not ok:
             return False, msg
-        return (True, str(path)) if path.is_file() else (False, "arquivo não criado")
+        return (True, str(path)) if path.is_file() else (False, "file was not created")
 
     if mode == "window":
         ok, msg = _run_gnome_screenshot(
@@ -165,19 +165,19 @@ def take_screenshot(
         )
         if not ok:
             return False, msg
-        return (True, str(path)) if path.is_file() else (False, "arquivo não criado")
+        return (True, str(path)) if path.is_file() else (False, "file was not created")
 
     if mode == "monitor":
         monitors = list_monitors()
         if not monitors:
-            return False, "nenhum monitor detectado"
+            return False, "no monitor detected"
         if monitor_index is None:
             monitor_index = next(
                 (m["index"] for m in monitors if m.get("primary")), monitors[0]["index"]
             )
         mon = next((m for m in monitors if m["index"] == monitor_index), None)
         if mon is None:
-            return False, f"monitor {monitor_index} não encontrado"
+            return False, f"monitor {monitor_index} not found"
 
         with tempfile.TemporaryDirectory(prefix="xone-shot-") as tmp:
             full_path = Path(tmp) / "full.png"
@@ -187,11 +187,11 @@ def take_screenshot(
             if not ok:
                 return False, msg
             if not full_path.is_file():
-                return False, "arquivo temporário não criado"
+                return False, "temporary file was not created"
             ok, msg = _crop_pixbuf_to_monitor(full_path, path, mon)
             if not ok:
                 return False, msg
-        return (True, str(path)) if path.is_file() else (False, "arquivo não criado")
+        return (True, str(path)) if path.is_file() else (False, "file was not created")
 
     # fullscreen (default)
     ok, msg = _run_gnome_screenshot(
@@ -199,4 +199,4 @@ def take_screenshot(
     )
     if not ok:
         return False, msg
-    return (True, str(path)) if path.is_file() else (False, "arquivo não criado")
+    return (True, str(path)) if path.is_file() else (False, "file was not created")

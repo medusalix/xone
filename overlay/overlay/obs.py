@@ -71,30 +71,30 @@ def is_obs_installed() -> bool:
 def install_help(installed: bool = False) -> str:
     if not installed:
         return (
-            "OBS não encontrado.\n\n"
-            "Instale com um dos comandos:\n"
+            "OBS not found.\n\n"
+            "Install with one of:\n"
             f"  flatpak install flathub {OBS_FLATPAK_ID}\n"
-            "  ou: sudo apt install obs-studio\n\n"
-            "Depois abra o OBS e ative o WebSocket:\n"
-            "  Ferramentas → Configurações do servidor WebSocket → Ativar"
+            "  or: sudo apt install obs-studio\n\n"
+            "Then open OBS and enable the WebSocket server:\n"
+            "  Tools → WebSocket Server Settings → Enable"
         )
     return (
-        "OBS instalado, mas não conectado ao WebSocket.\n\n"
-        "1. Abra o OBS Studio\n"
-        "2. Ferramentas → Configurações do servidor WebSocket → Ativar\n"
-        "3. Se houver senha, informe-a em Configurações do xone Overlay\n"
-        "4. Porta padrão: 4455 (localhost)\n\n"
-        "No Flatpak o OBS precisa estar em execução para aceitar o controle."
+        "OBS is installed, but the WebSocket is not reachable.\n\n"
+        "1. Open OBS Studio\n"
+        "2. Tools → WebSocket Server Settings → Enable\n"
+        "3. If a password is set, enter it in xone Overlay Settings\n"
+        "4. Default port: 4455 (localhost)\n\n"
+        "With Flatpak, OBS must be running to accept control."
     )
 
 
 def short_help(status: ObsStatus) -> str:
     if not _HAS_WS:
-        return "Instale: sudo apt install python3-websocket"
+        return "Install: sudo apt install python3-websocket"
     if not status.installed:
-        return "OBS não encontrado — veja como instalar"
+        return "OBS not found — see how to install"
     if not status.connected:
-        return "OBS não conectado — abra e ative o WebSocket"
+        return "OBS not connected — open it and enable WebSocket"
     return ""
 
 
@@ -110,7 +110,7 @@ def _auth_string(password: str, salt: str, challenge: str) -> str:
 class _ObsClient:
     def __init__(self, host: str, port: int, password: str, timeout: float = 2.5):
         if not _HAS_WS:
-            raise RuntimeError("python3-websocket não instalado")
+            raise RuntimeError("python3-websocket is not installed")
         self._ws = _ws_connect(
             f"ws://{host}:{port}",
             timeout=timeout,
@@ -119,7 +119,7 @@ class _ObsClient:
         hello = self._recv()
         if hello.get("op") != 0:
             self.close()
-            raise RuntimeError("resposta Hello inválida do OBS")
+            raise RuntimeError("invalid OBS Hello response")
         data = hello.get("d") or {}
         identify: Dict[str, Any] = {"rpcVersion": 1}
         auth = data.get("authentication")
@@ -131,7 +131,7 @@ class _ObsClient:
         identified = self._recv()
         if identified.get("op") != 2:
             self.close()
-            raise RuntimeError("autenticação WebSocket falhou (senha?)")
+            raise RuntimeError("WebSocket authentication failed (password?)")
 
     def _send(self, op: int, data: Dict[str, Any]) -> None:
         self._ws.send(json.dumps({"op": op, "d": data}))
@@ -173,12 +173,12 @@ class _ObsClient:
 def _connect() -> Tuple[Optional[_ObsClient], ObsStatus]:
     status = ObsStatus(installed=is_obs_installed())
     if not _HAS_WS:
-        status.error = "dependência ausente"
+        status.error = "missing dependency"
         status.help_text = (
-            "Falta a biblioteca WebSocket do Python.\n\n"
-            "Instale com:\n"
+            "Python WebSocket library is missing.\n\n"
+            "Install with:\n"
             "  sudo apt install python3-websocket\n"
-            "Depois reinicie o overlay:\n"
+            "Then restart the overlay:\n"
             "  systemctl --user restart xone-overlay"
         )
         return None, status
@@ -196,10 +196,10 @@ def _connect() -> Tuple[Optional[_ObsClient], ObsStatus]:
         err = str(exc).lower()
         if "auth" in err or "senha" in err or "authentication" in err:
             status.help_text = (
-                "Senha do WebSocket incorreta ou ausente.\n\n"
-                "Em OBS: Ferramentas → Configurações do servidor WebSocket "
-                "(copie a senha).\n"
-                "No overlay: Configurações → OBS → cole a senha."
+                "WebSocket password is wrong or missing.\n\n"
+                "In OBS: Tools → WebSocket Server Settings "
+                "(copy the password).\n"
+                "In the overlay: Settings → OBS → paste the password."
             )
         elif not status.installed:
             status.help_text = install_help(installed=False)
@@ -244,9 +244,9 @@ def _toggle(action_start: str, action_stop: str, active_key: str, want_active: b
         status.recording = bool(rec.get("outputActive"))
         status.streaming = bool(stream.get("outputActive"))
         if active_key == "recording":
-            msg = "Gravação iniciada" if status.recording else "Gravação parada"
+            msg = "Recording started" if status.recording else "Recording stopped"
         else:
-            msg = "Stream iniciado" if status.streaming else "Stream parado"
+            msg = "Stream started" if status.streaming else "Stream stopped"
         return True, msg, status
     except Exception as exc:
         log.warning("OBS action failed: %s", exc)
