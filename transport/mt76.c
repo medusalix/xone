@@ -511,11 +511,20 @@ static int xone_mt76_reset_firmware(struct xone_mt76 *mt)
 int xone_mt76_load_firmware(struct xone_mt76 *mt, const char *name)
 {
 	const struct firmware *fw;
+	u32 val;
 	int err;
 
 	if (xone_mt76_read_register(mt, MT_FCE_DMA_ADDR | MT_VEND_TYPE_CFG)) {
 		dev_dbg(mt->dev, "%s: resetting firmware...\n", __func__);
-		return xone_mt76_reset_firmware(mt);
+		err = xone_mt76_reset_firmware(mt);
+		if (err)
+			return err;
+		/*
+		 * MCU needs time after warm reset before init_radio bulk
+		 * commands; without this delay warm reboot often times out.
+		 */
+		msleep(500);
+		return 0;
 	}
 
 	err = request_firmware(&fw, name, mt->dev);
@@ -532,9 +541,25 @@ int xone_mt76_load_firmware(struct xone_mt76 *mt, const char *name)
 
 	xone_mt76_write_register(mt, MT_FCE_DMA_ADDR | MT_VEND_TYPE_CFG, 0);
 
+	/*
+	 * Warm reset applies an RF patch before load_ivb. Without the same
+	 * patch on cold boot the RF stays silent: init_radio appears to
+	 * succeed but no beacons are transmitted, so controllers never find
+	 * the dongle.
+	 */
+	val = xone_mt76_read_register(mt, XONE_MT_RF_PATCH | MT_VEND_TYPE_CFG);
+	xone_mt76_write_register(mt, XONE_MT_RF_PATCH | MT_VEND_TYPE_CFG,
+				 val & ~BIT(19));
+
 	err = xone_mt76_load_ivb(mt);
 	if (err)
 		goto err_free_firmware;
+
+	/*
+	 * After load_ivb the chip briefly disconnects from USB. Wait so the
+	 * FCE_DMA_ADDR poll does not race the disconnect/reconnect cycle.
+	 */
+	msleep(500);
 
 	if (!xone_mt76_poll(mt, MT_FCE_DMA_ADDR | MT_VEND_TYPE_CFG, 0x01, 0x01))
 		err = -ETIMEDOUT;

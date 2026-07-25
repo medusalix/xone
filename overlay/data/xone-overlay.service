@@ -1,0 +1,17 @@
+[Unit]
+Description=xone Xbox Guide Overlay
+Documentation=file:///usr/local/share/xone-overlay/data/../README.md
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/xone-overlay
+Restart=on-failure
+RestartSec=3
+KillMode=process
+# X11 session; inherited from the user graphical session when started by systemd --user
+PassEnvironment=DISPLAY XAUTHORITY WAYLAND_DISPLAY XDG_RUNTIME_DIR
+
+[Install]
+WantedBy=graphical-session.target

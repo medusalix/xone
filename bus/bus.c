@@ -6,6 +6,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/idr.h>
+#include <linux/sysfs.h>
 #include <linux/version.h>
 
 #include "bus.h"
@@ -51,9 +52,43 @@ static void gip_client_release(struct device *dev)
 	kfree(client);
 }
 
+static ssize_t power_off_store(struct device *dev,
+			       struct device_attribute *attr,
+			       const char *buf, size_t count)
+{
+	struct gip_client *client = to_gip_client(dev);
+	bool off;
+	int err;
+
+	err = kstrtobool(buf, &off);
+	if (err)
+		return err;
+
+	if (!off)
+		return count;
+
+	dev_dbg(dev, "%s: powering off\n", __func__);
+
+	err = gip_set_power_mode(client, GIP_PWR_OFF);
+	if (err) {
+		dev_err(dev, "%s: power off failed: %d\n", __func__, err);
+		return err;
+	}
+
+	return count;
+}
+static DEVICE_ATTR_WO(power_off);
+
+static struct attribute *gip_client_attrs[] = {
+	&dev_attr_power_off.attr,
+	NULL,
+};
+ATTRIBUTE_GROUPS(gip_client);
+
 static struct device_type gip_client_type = {
 	.uevent = gip_client_uevent,
 	.release = gip_client_release,
+	.groups = gip_client_groups,
 };
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)

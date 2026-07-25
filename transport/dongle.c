@@ -6,6 +6,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/bitfield.h>
+#include <linux/delay.h>
 #include <linux/version.h>
 #include <linux/usb.h>
 #include <linux/ieee80211.h>
@@ -22,10 +23,8 @@
 
 #define XONE_DONGLE_MAX_CLIENTS 16
 
-/* autosuspend delay in ms */
-#define XONE_DONGLE_SUSPEND_DELAY 60000
-
-#define XONE_DONGLE_PAIRING_TIMEOUT msecs_to_jiffies(30000)
+/* Pairing window after boot/replug/resume so already-paired pads reconnect */
+#define XONE_DONGLE_PAIRING_TIMEOUT msecs_to_jiffies(60000)
 #define XONE_DONGLE_PWR_OFF_TIMEOUT msecs_to_jiffies(5000)
 
 enum xone_dongle_queue {
@@ -249,6 +248,15 @@ err_unlock:
 	return err;
 }
 
+static int xone_dongle_start_pairing_window(struct xone_dongle *dongle)
+{
+	/* Keep pairing open long enough for already-paired controllers */
+	mod_delayed_work(system_wq, &dongle->pairing_work,
+			 XONE_DONGLE_PAIRING_TIMEOUT);
+
+	return xone_dongle_toggle_pairing(dongle, true);
+}
+
 static void xone_dongle_pairing_timeout(struct work_struct *work)
 {
 	struct xone_dongle *dongle = container_of(to_delayed_work(work),
@@ -425,9 +433,7 @@ static void xone_dongle_handle_event(struct work_struct *work)
 		err = xone_dongle_pair_client(evt->dongle, evt->address);
 		break;
 	case XONE_DONGLE_EVT_ENABLE_PAIRING:
-		mod_delayed_work(system_wq, &evt->dongle->pairing_work,
-				 XONE_DONGLE_PAIRING_TIMEOUT);
-		err = xone_dongle_toggle_pairing(evt->dongle, true);
+		err = xone_dongle_start_pairing_window(evt->dongle);
 		break;
 	case XONE_DONGLE_EVT_ENABLE_ENCRYPTION:
 		err = xone_dongle_enable_client_encryption(evt->dongle,
@@ -837,10 +843,23 @@ static int xone_dongle_init(struct xone_dongle *dongle)
 	}
 
 	err = xone_mt76_init_radio(mt);
-	if (err)
+	if (err) {
 		dev_err(mt->dev, "%s: init radio failed: %d\n", __func__, err);
+		return err;
+	}
 
-	return err;
+	/*
+	 * init_radio ends with set_pairing(false), which rejects association
+	 * from already-paired controllers. Open a temporary pairing window so
+	 * pads can reconnect after boot or dongle replug without a button press
+	 * (same behaviour as the Windows driver).
+	 */
+	err = xone_dongle_start_pairing_window(dongle);
+	if (err)
+		dev_err(mt->dev, "%s: enable pairing failed: %d\n",
+			__func__, err);
+
+	return 0;
 }
 
 static int xone_dongle_power_off_clients(struct xone_dongle *dongle)
@@ -923,8 +942,12 @@ static int xone_dongle_probe(struct usb_interface *intf,
 	dongle->mt.dev = &intf->dev;
 	dongle->mt.udev = interface_to_usbdev(intf);
 
-	usb_reset_device(dongle->mt.udev);
-
+	/*
+	 * Do not call usb_reset_device() here. On cold boot the MT76 chip
+	 * disconnects from USB as part of firmware startup (load_ivb). A
+	 * preceding USB reset can leave the XHCI port unable to handle that
+	 * cycle, so the dongle disappears until a physical replug.
+	 */
 	dongle->event_wq = alloc_ordered_workqueue("xone_dongle", 0);
 	if (!dongle->event_wq)
 		return -ENOMEM;
@@ -942,12 +965,9 @@ static int xone_dongle_probe(struct usb_interface *intf,
 
 	usb_set_intfdata(intf, dongle);
 
-	/* enable USB remote wakeup and autosuspend */
+	/* Remote wakeup only — autosuspend is disabled (see driver flags) */
 	intf->needs_remote_wakeup = true;
 	device_wakeup_enable(&dongle->mt.udev->dev);
-	pm_runtime_set_autosuspend_delay(&dongle->mt.udev->dev,
-					 XONE_DONGLE_SUSPEND_DELAY);
-	usb_enable_autosuspend(dongle->mt.udev);
 
 	return 0;
 }
@@ -990,6 +1010,9 @@ static int xone_dongle_resume(struct usb_interface *intf)
 	struct urb *urb;
 	int err;
 
+	/* Give the USB/MT76 stack time after system sleep */
+	msleep(1500);
+
 	while ((urb = usb_get_from_anchor(&dongle->urbs_in_idle))) {
 		usb_anchor_urb(urb, &dongle->urbs_in_busy);
 		usb_free_urb(urb);
@@ -999,7 +1022,19 @@ static int xone_dongle_resume(struct usb_interface *intf)
 			return err;
 	}
 
-	return xone_mt76_resume_radio(&dongle->mt);
+	msleep(1000);
+
+	err = xone_mt76_resume_radio(&dongle->mt);
+	if (err)
+		return err;
+
+	/* Allow already-paired controllers to associate again after wake */
+	err = xone_dongle_start_pairing_window(dongle);
+	if (err)
+		dev_err(dongle->mt.dev, "%s: enable pairing failed: %d\n",
+			__func__, err);
+
+	return 0;
 }
 
 static void xone_dongle_shutdown(struct device *dev)
@@ -1034,7 +1069,8 @@ static struct usb_driver xone_dongle_driver = {
 #else
 	.driver.shutdown = xone_dongle_shutdown,
 #endif
-	.supports_autosuspend = true,
+	/* Autosuspend wedges many adapters until a physical USB replug */
+	.supports_autosuspend = false,
 	.disable_hub_initiated_lpm = true,
 	.soft_unbind = true,
 };

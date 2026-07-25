@@ -25,11 +25,15 @@ if [ "${1:-}" != --skip-disclaimer ]; then
     read -r _
 fi
 
+# Work in a temp dir so leftover cab files are not left in $PWD
+workdir="$(mktemp -d)"
+trap 'rm -rf "$workdir"' EXIT
+cd "$workdir"
+
 driver_url='http://download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab'
 firmware_hash='48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66'
 
 curl -L -o driver.cab "$driver_url"
 cabextract -F FW_ACC_00U.bin driver.cab
 echo "$firmware_hash" FW_ACC_00U.bin | sha256sum -c
-mv FW_ACC_00U.bin /lib/firmware/xow_dongle.bin
-rm driver.cab
+install -D -m 644 FW_ACC_00U.bin /lib/firmware/xow_dongle.bin

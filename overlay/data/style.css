@@ -1,0 +1,264 @@
+/* xone overlay — cores do tema GTK atual (Mint-Y, Mint-Y-Dark, etc.) */
+
+.overlay-root {
+  /* background alpha applied dynamically from settings */
+  color: @theme_fg_color;
+  border: 1px solid alpha(@theme_fg_color, 0.12);
+  border-radius: 8px;
+  font-family: "Ubuntu", "Cantarell", sans-serif;
+  font-size: 13px;
+  box-shadow: 0 8px 28px alpha(#000000, 0.35);
+}
+
+.overlay-accent {
+  background-color: @theme_selected_bg_color;
+  min-height: 3px;
+}
+
+.overlay-header {
+  padding: 10px 14px 8px 14px;
+  /* background alpha applied dynamically from settings */
+  border-bottom: 1px solid alpha(@theme_fg_color, 0.08);
+}
+
+.brand {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: @theme_selected_bg_color;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: alpha(@theme_fg_color, 0.45);
+  margin-left: 6px;
+}
+
+.clock {
+  font-size: 20px;
+  font-weight: 500;
+  color: @theme_fg_color;
+}
+
+.icon-btn {
+  background-image: none;
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 28px;
+  min-height: 28px;
+  color: alpha(@theme_fg_color, 0.7);
+  box-shadow: none;
+}
+
+.icon-btn:hover {
+  background-color: alpha(@theme_fg_color, 0.08);
+  color: @theme_fg_color;
+}
+
+.icon-btn:checked,
+.icon-btn.toggle:checked {
+  background-color: alpha(@theme_selected_bg_color, 0.22);
+  color: @theme_selected_bg_color;
+  border: none;
+}
+
+.overlay-body {
+  padding: 12px 14px 14px 14px;
+}
+
+.overlay-body-horizontal .section {
+  padding: 0 12px;
+  border-right: 1px solid alpha(@theme_fg_color, 0.08);
+  border-bottom: none;
+  min-width: 160px;
+}
+
+.overlay-body-horizontal .section:last-child {
+  border-right: none;
+}
+
+.overlay-body-vertical .section {
+  padding: 8px 4px 10px 4px;
+  border-right: none;
+  border-bottom: 1px solid alpha(@theme_fg_color, 0.08);
+  min-width: 0;
+}
+
+.overlay-body-vertical .section:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: alpha(@theme_fg_color, 0.45);
+  margin-bottom: 8px;
+}
+
+.metric-name {
+  font-size: 12px;
+  color: alpha(@theme_fg_color, 0.55);
+}
+
+.metric-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: @theme_fg_color;
+}
+
+.metric-hint {
+  font-size: 11px;
+  color: alpha(@theme_fg_color, 0.4);
+}
+
+.status {
+  font-size: 11px;
+  color: @theme_selected_bg_color;
+  margin-top: 6px;
+}
+
+.overlay-root progressbar trough {
+  background-color: alpha(@theme_fg_color, 0.12);
+  border: none;
+  border-radius: 3px;
+  min-height: 6px;
+  padding: 0;
+}
+
+.overlay-root progressbar progress {
+  background-image: none;
+  background-color: @theme_selected_bg_color;
+  border-radius: 3px;
+  border: none;
+}
+
+.overlay-root progressbar.level-warn progress {
+  background-color: #e5a73a;
+}
+
+.overlay-root progressbar.level-low progress {
+  background-color: #e35d5d;
+}
+
+.overlay-root scale {
+  padding: 4px 0;
+  margin: 0;
+}
+
+.overlay-root scale trough {
+  background-color: alpha(@theme_fg_color, 0.12);
+  border: none;
+  border-radius: 3px;
+  min-height: 6px;
+}
+
+.overlay-root scale highlight {
+  background-image: none;
+  background-color: @theme_selected_bg_color;
+  border-radius: 3px;
+}
+
+.overlay-root scale slider {
+  background-image: none;
+  background-color: @theme_selected_fg_color;
+  border: 1px solid alpha(@theme_fg_color, 0.2);
+  border-radius: 50%;
+  min-width: 12px;
+  min-height: 12px;
+  margin: -4px 0;
+  box-shadow: 0 1px 3px alpha(#000000, 0.25);
+}
+
+.overlay-root scale value {
+  color: alpha(@theme_fg_color, 0.7);
+  font-size: 11px;
+  min-width: 28px;
+}
+
+.btn-primary {
+  background-image: none;
+  background-color: @theme_selected_bg_color;
+  border: none;
+  border-radius: 6px;
+  color: @theme_selected_fg_color;
+  font-weight: 600;
+  padding: 8px 14px;
+  box-shadow: none;
+}
+
+.btn-primary:hover {
+  background-color: mix(@theme_selected_bg_color, @theme_fg_color, 0.12);
+}
+
+.btn-primary:active {
+  background-color: mix(@theme_selected_bg_color, #000000, 0.15);
+}
+
+.btn-secondary {
+  background-image: none;
+  background-color: alpha(@theme_fg_color, 0.08);
+  border: 1px solid alpha(@theme_fg_color, 0.18);
+  border-radius: 6px;
+  color: @theme_fg_color;
+  font-weight: 600;
+  padding: 8px 14px;
+  box-shadow: none;
+}
+
+.btn-secondary:hover {
+  background-color: alpha(@theme_fg_color, 0.14);
+}
+
+.btn-secondary:active {
+  background-color: alpha(@theme_fg_color, 0.20);
+}
+
+.audio-row,
+.action-col {
+  min-width: 200px;
+}
+
+.settings-popover {
+  min-width: 240px;
+}
+
+.settings-popover radiobutton {
+  padding: 4px 0;
+}
+
+.settings-dialog-body {
+  min-width: 380px;
+}
+
+.settings-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: @theme_fg_color;
+}
+
+.position-grid {
+  margin-top: 4px;
+}
+
+.position-choice {
+  background-image: none;
+  background-color: alpha(@theme_fg_color, 0.06);
+  border: 1px solid alpha(@theme_fg_color, 0.12);
+  border-radius: 6px;
+  padding: 8px 6px;
+}
+
+.position-choice:hover {
+  background-color: alpha(@theme_fg_color, 0.10);
+}
+
+.position-choice:checked {
+  background-color: alpha(@theme_selected_bg_color, 0.25);
+  border-color: @theme_selected_bg_color;
+  color: @theme_fg_color;
+  font-weight: 600;
+}

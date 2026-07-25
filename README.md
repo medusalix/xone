@@ -28,6 +28,7 @@ Installing `xone` will disable the `xpad` kernel driver. If you are still using 
 - [x] LED control (using `/sys/class/leds`)
 - [x] Audio capture/playback (through `ALSA`)
 - [x] Power management (suspend/resume and remote/wireless wakeup)
+- [x] Software power-off of controllers via sysfs (`power_off`)
 
 ## Supported devices
 
@@ -74,7 +75,7 @@ Any issues regarding the packaging should be reported to the respective maintain
 git clone https://github.com/medusalix/xone
 ```
 
-3. Install `xone`:
+3. Install `xone` (driver, udev, overlay, and dongle firmware if missing):
 
 ```
 cd xone
@@ -83,7 +84,7 @@ sudo ./install.sh
 
 **NOTE:** You can use the `--release` flag to disable debug logging.
 
-4. Download the firmware for the wireless dongle:
+The wireless dongle firmware is installed automatically when `/lib/firmware/xow_dongle.bin` is missing (Microsoft [Terms of Use](https://www.microsoft.com/en-us/legal/terms-of-use)). To (re)download it manually:
 
 ```
 sudo xone-get-firmware.sh
@@ -91,7 +92,7 @@ sudo xone-get-firmware.sh
 
 **NOTE:** The `--skip-disclaimer` flag might be useful for scripting purposes.
 
-5. Plug in your Xbox devices.
+4. Plug in your Xbox devices.
 
 ### Updating
 
@@ -125,11 +126,35 @@ ACTION=="add", SUBSYSTEM=="leds", KERNEL=="gip*", ATTR{mode}="2", ATTR{brightnes
 Replace the wildcard (`gip*`) if you want to control the LED of a specific device.
 The modes and the maximum brightness can vary from device to device.
 
+## Controller power-off
+
+Connected GIP clients expose a write-only sysfs attribute:
+
+```
+echo 1 | tee /sys/bus/xone-gip/devices/gip0.0/power_off
+```
+
+This sends the same power-off command used when the wireless dongle is unplugged.
+Press the Xbox button on the controller to turn it back on (pairing is kept).
+The xone Overlay also has a **Desligar controle** button that writes this attribute
+(requires group `input` + the packaged udev rule).
+
 ## Troubleshooting
 
 Uninstall the release version and install a debug build of `xone` (see installation guide).
 Run `sudo dmesg` to gather logs and check for any error messages related to `xone`.
 If `xone` is not being loaded automatically you might have to reboot your system.
+
+### Wireless dongle reconnects slowly / needs replugging
+
+This tree includes mitigations for common Xbox Wireless Adapter issues:
+
+- No `usb_reset_device()` during probe (avoids dongle disappearing until replug)
+- RF patch + delays on cold/warm firmware init
+- 60s pairing window after init/resume so already-paired controllers can reconnect
+- USB autosuspend disabled for the dongle (driver + udev rule)
+
+After updating the driver, reinstall with `sudo ./uninstall.sh` then `sudo ./install.sh`, unplug/replug the adapter, and prefer a rear motherboard USB port.
 
 ### Error messages
 

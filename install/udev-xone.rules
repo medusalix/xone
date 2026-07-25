@@ -1,0 +1,13 @@
+# Xbox Wireless Adapter — keep awake (autosuspend wedges many dongles)
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02e6", ATTR{power/control}="on", ATTR{power/autosuspend}="-1"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02fe", ATTR{power/control}="on", ATTR{power/autosuspend}="-1"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02f9", ATTR{power/control}="on", ATTR{power/autosuspend}="-1"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="091e", ATTR{power/control}="on", ATTR{power/autosuspend}="-1"
+
+# Allow the active seat + group "input" to read Xbox / GIP controllers (Guide button / overlay)
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="Microsoft Xbox Controller", MODE="0660", GROUP="input", TAG+="uaccess"
+SUBSYSTEM=="input", KERNEL=="js*", ATTRS{name}=="Microsoft Xbox Controller", MODE="0660", GROUP="input", TAG+="uaccess"
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_JOYSTICK}=="1", ATTRS{id/vendor}=="045e", MODE="0660", GROUP="input", TAG+="uaccess"
+
+# Overlay / users in group "input" can power off GIP clients (write-only sysfs)
+ACTION=="add", SUBSYSTEM=="xone-gip", KERNEL=="gip*.*", TEST=="power_off", RUN+="/bin/chgrp input /sys/bus/xone-gip/devices/%k/power_off", RUN+="/bin/chmod 0660 /sys/bus/xone-gip/devices/%k/power_off"

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=xone Overlay
+Comment=Xbox Guide overlay for battery, performance, audio and screenshots
+Exec=/usr/local/bin/xone-overlay
+Icon=input-gaming
+Terminal=false
+Categories=Utility;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
+X-GNOME-UsesNotifications=false
