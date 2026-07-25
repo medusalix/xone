@@ -10,6 +10,39 @@
 
 `xone` is a Linux kernel driver for Xbox One and Xbox Series X|S accessories. It serves as a modern replacement for `xpad`, aiming to be compatible with Microsoft's *Game Input Protocol* (GIP).
 
+## Extensões deste tree (Linux Mint)
+
+> **Alvo:** [Linux Mint](https://linuxmint.com/) com **Cinnamon** em **X11**.  
+> Pode funcionar em outras distros baseadas em Ubuntu/Debian, **mas não é garantido** (Wayland, outros DEs e empacotamento diferente podem quebrar o overlay ou as regras udev).
+
+Além do driver upstream, este repositório inclui:
+
+| Área | O que foi adicionado |
+|------|----------------------|
+| **Driver / dongle** | Mitigações de reconnect do Xbox Wireless Adapter; autosuspend desligado; firmware do dongle no `install.sh` se faltar |
+| **Power-off** | Sysfs `power_off` em clientes GIP (`/sys/bus/xone-gip/devices/gip*.*/power_off`) |
+| **Permissões** | Udev + grupo `input` para o Guide / overlay (`install/user-access.sh`) |
+| **Overlay** | Companion userspace estilo Game Bar — ver [`overlay/README.md`](overlay/README.md) |
+| **Install/uninstall** | Overlay, udev, firmware e dependências apt rastreadas (`install/apt-deps.sh`) |
+
+### Overlay — como usar (resumo)
+
+1. Instale com `sudo ./install.sh` e faça **logout/login** (grupo `input`).
+2. O serviço `xone-overlay` sobe no login (`systemd --user`).
+3. Pressione o botão **Guide** (X central) no controle para abrir/fechar o painel.
+4. No painel: baterias, desempenho, volume, captura (área/janela/monitor/tela), OBS (gravar/stream), desligar controle, configurações (posição, opacidade, pasta de capturas, WebSocket do OBS).
+
+Documentação completa do overlay: **[`overlay/README.md`](overlay/README.md)**.
+
+### Atualizar / remover
+
+```bash
+sudo ./uninstall.sh   # remove driver, overlay, udev e pacotes apt que *este* install adicionou
+sudo ./install.sh     # reinstala tudo
+```
+
+O firmware `/lib/firmware/xow_dongle.bin` **não** é apagado no uninstall (o dongle precisa dele). O **OBS Studio** também não é instalado nem removido pelo xone — só controlado pelo overlay se já estiver presente.
+
 ## Compatibility
 
 - [x] Wired devices (via USB)
