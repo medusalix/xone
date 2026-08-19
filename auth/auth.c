@@ -594,8 +594,21 @@ int gip_auth_process_pkt(struct gip_auth *auth, void *data, u32 len)
 	if (!auth->client)
 		return -ENODEV;
 
-	if (len < sizeof(*hdr))
-		return -EINVAL;
+	/*
+	 * Some third-party controllers (e.g. the Flydigi Vader 5S) reply to
+	 * the initial HOST_HELLO with a short acknowledgement instead of a
+	 * proper handshake response, indicating that authentication is not
+	 * required. Treat any response too short to contain a handshake
+	 * header as an implicit "no authentication needed" instead of
+	 * failing outright, which would otherwise tear down the adapter.
+	 */
+	if (len < sizeof(*hdr)) {
+		dev_dbg(&auth->client->dev,
+			"%s: short auth response (len=%u), skipping handshake\n",
+			__func__, len);
+
+		return gip_auth_send_complete(auth->client);
+	}
 
 	if (hdr->error)
 		return -EPROTO;
