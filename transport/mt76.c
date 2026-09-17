@@ -942,6 +942,31 @@ int xone_mt76_init_radio(struct xone_mt76 *mt)
 	/* mandatory delay after channel change */
 	msleep(1000);
 
+	/*
+	 * After S3 sleep the reset_resume path does a warm firmware MCU reset
+	 * (reset_firmware) rather than a full USB re-enumeration. The MT76
+	 * chip's hardware DMA routing registers are NOT reset by the MCU soft
+	 * reset, so any WoW configuration applied by suspend_radio() may
+	 * persist: specifically, set_wow_traffic(TO_HOST) reconfigures the
+	 * hardware to forward received frames via the wake-on-wireless path
+	 * rather than the normal firmware-processed path. With that routing
+	 * still active, incoming QoS data frames (GIP ANNOUNCE from the
+	 * controller) are silently dropped before they reach the host driver,
+	 * so the GIP handshake never completes and the controller light stays
+	 * solid but never dims.
+	 *
+	 * Explicitly restore normal traffic routing before setting up the
+	 * beacon. On cold boot (no prior WoW state) these are harmless no-ops.
+	 * mt->channel is valid here because init_channels() has already run.
+	 */
+	err = xone_mt76_set_wow_traffic(mt, XONE_MT_WOW_TO_FIRMWARE);
+	if (err)
+		return err;
+
+	err = xone_mt76_set_wow_enable(mt, false);
+	if (err)
+		return err;
+
 	return xone_mt76_set_pairing(mt, false);
 }
 
