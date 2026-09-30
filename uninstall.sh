@@ -22,6 +22,8 @@ if [ -n "$version" ]; then
     rm -r "/usr/src/xone-$version"
     rm -f /etc/modprobe.d/xone-blacklist.conf
     rm -f /usr/local/bin/xone-get-firmware.sh
+    rm -f /etc/udev/rules.d/99-xone-dongle.rules                                                                                                                                                                                           
+    udevadm control --reload-rules
 else
     echo 'Driver is not installed!' >&2
 fi
